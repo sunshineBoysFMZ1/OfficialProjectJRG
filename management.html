@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>员工管理</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cells {
+      margin-top: 0;
+      /*padding:10px 0;*/
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 10px 15px
+    }
+
+    .weui-btn {
+      line-height: 34px;
+      height: 34px;
+      width: 80px;
+      margin-left: 15px;
+      margin-right: 0
+    }
+
+    .weui-btn:first-child {
+      line-height: 34px;
+      height: 34px;
+      background: none;
+      border: solid 1px #F65452;
+      color: #F65452
+    }
+
+    .weui-btn+.weui-btn {
+      margin-top: 10px
+    }
+
+    button.weui-btn {
+      width: 64px
+    }
+
+    .weui-cells:after {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cell:before {
+      right: 15px
+    }
+
+    .el-message-box {
+      width: 340px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading'>
+    <div class="margin-sm">
+      <div class="listbox bg-white radius shadow" v-for='(item,index) in staffData' :key='index'>
+        <div class="padding text-lg">
+          <p>{{item.name}}</p>
+        </div>
+        <div class="weui-cells" v-if='item.manager'>
+          <div class="weui-cell" v-for='(user,ii) in item.manager' :key='ii'>
+            <div class="weui-cell__bd">
+              <div class="">
+                <p>姓名：{{user.user.nickname}}</p>
+              </div>
+              <a class="margin-top-xs text-blue" :href="'tel:'+user.user.mobile">电话：{{user.user.mobile}}</a>
+              <div class="margin-top-xs">身份：{{user.type ? '经理' : '操作员'}}</div>
+            </div>
+            <div class="weui-cell__ft margin-left">
+              <button class="weui-btn" @click='saveStaffStatus(user.id,2,user,item.name)'>删除</button>
+              <button class="weui-btn" @click='saveStaffStatus(user.id,1)' v-if='user.status == 0'>暂停</button>
+              <button class="weui-btn" @click='saveStaffStatus(user.id,0)' v-if='user.status == 1'>恢复</button>
+            </div>
+          </div>
+        </div>
+        <div class="weui-cells" style="text-align:center;padding:10px" v-else>
+          场所下面没有绑定的员工
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            loading: true,
+            staffData: []
+          }
+        },
+        created() {
+          let that = this;
+          that.staff();
+        },
+        methods: {
+          // 删除员工提现
+          Usuccess(site_identity_id, status, user, name) {
+            let that = this;
+            that.$confirm('删除' + name + '场所' + "(" + user.user.nickname + ")" + '员工?', '删除员工', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning',
+              center: true,
+              callback: (res) => {
+                if (res == 'confirm') {
+                  that.operato(site_identity_id, status)
+                } else {
+                  that.$message({
+                    type: 'info',
+                    message: '取消'
+                  });
+                }
+              }
+            })
+          },
+          staff() {
+            let that = this,
+              url = '/api.php?s=/site/staff',
+              data = {};
+            requestPost(url, data).then((res) => {
+              that.loading = false;
+              that.staffData = res.data;
+            }).catch((err) => {
+              console.log(err)
+            })
+          },
+          // 操作
+          saveStaffStatus(site_identity_id, status, index, ii) {
+            let that = this;
+            if (status == 2) {
+              that.Usuccess(site_identity_id, status, index, ii);
+            } else {
+              that.operato(site_identity_id, status)
+            }
+          },
+          operato(site_identity_id, status) {
+            let that = this,
+              url = '/api.php?s=/site/saveStaffStatus',
+              data = {
+                site_identity_id,
+                status
+              };
+            requestPost(url, data).then((res) => {
+              that.$message({
+                message: res.msg,
+                type: 'success'
+              });
+              that.staff();
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,220 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>超时订单</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cells {
+      margin-top: 0;
+      padding: 15px 0;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px;
+      align-items: flex-start
+    }
+
+    .weui-cell:before,
+    .weui-grids:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cells .weui-cell:last-child {
+      margin-bottom: 0
+    }
+
+    .weui-grid {
+      padding: 6px 0;
+    }
+
+    .weui-btn {
+      background: none;
+      border: 0;
+      color: #F65452
+    }
+
+    .weui-grid:first-child .weui-btn {
+      color: #333
+    }
+
+    .btnitem .weui-btn {
+      height: 50px;
+      line-height: 20px
+    }
+
+    .btnitem .weui-btn p {
+      font-size: 12px;
+    }
+
+    .weui-grids:after,
+    .weui-grid:last-child:before {
+      border: 0;
+      width: 0
+    }
+
+    .el-message-box {
+      width: 330px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading'>
+    <div class="padding-sm" v-for='(item,index) in listData' :key='index'>
+      <div class="listbox bg-white radius shadow">
+        <div class="weui-cells">
+          <div class="weui-cell">
+            <div class="weui-cell__hd">使用用户：</div>
+            <div class="weui-cell__bd">{{item.user.nickname}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">寄存门店：</div>
+            <div class="weui-cell__bd">{{item.site.name}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">寄存柜子：</div>
+            <div class="weui-cell__bd">{{item.device.name}}-{{item.deviceSub.name}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">计费模式：</div>
+            <div class="weui-cell__bd">{{item.charge_type}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">已存时长：</div>
+            <div class="weui-cell__bd">{{item.diff}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">逾期天数：</div>
+            <div class="weui-cell__bd">{{item.expire_day}}天</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">场所电话：</div>
+            <a class="weui-cell__bd text-red" :href="'tel:'+item.site.phone">{{item.site.phone}}</a>
+          </div>
+        </div>
+        <div class="weui-grids" @click='clearopen(item.id)'>
+          <div><button class="weui-btn">清柜</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="padding-xl" v-if='listData.length == 0'>
+      <div class="emptybox padding-lg text-center">
+        <img src="images/empty.png">
+        <div class="text-ml">暂无记录</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          /**
+           * @param {Array} listData 订单列表;
+           * @param {Bollean} loading 数据加载;
+           */
+          return {
+            listData: [],
+            loading: true
+          }
+        },
+        created() {
+          let that = this;
+          that.overtimeOrder();
+        },
+        methods: {
+          /**
+           * @method overtimeOrder() 超时订单;
+           * @param {string} url, 请求接口;
+           * @param {objetc} data 按需传参 无传{}/{data:xx};
+           * @callback then(res)=> @param {object} res => that.listData 订单列表, catch => err 错误处理; 
+           */
+          overtimeOrder() {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/overtimeOrder',
+              data = {};
+            requestPost(url, data).then((res) => {
+              that.listData = res.data;
+              that.loading = false
+            })
+          },
+          /**
+           * @method clearopen() 开门弹框 点击事件 获取存物记录id;
+           * @param {number} id 存物记录ID;
+           * @callback then()=> @method clearStockpile(@param {nymber} id) 清柜子, catch=>err 取消;;
+           * 
+           */
+          clearopen(id) {
+            let that = this;
+            that.$confirm('此操作将打开柜门,是否继续操作?', '清柜', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning',
+              center: true
+            }).then(() => {
+              that.clearStockpile(id)
+              that.loading = true
+            }).catch(() => {
+              that.$message({
+                type: 'info',
+                message: '取消'
+              });
+            });
+          },
+          /**
+           * @method clearStockpile() 开启柜门;
+           * @param {number} stockpileId 存物记录ID;
+           * @param {string} url 请求接口;
+           * @param {obejct} data 请求参数,没有{}/{stockpileId:xx};
+           * @callback then(res)=> 开门成功 => @method overtimeOrder() 刷新调用, catch=>err 开门失败;
+           */
+          clearStockpile(stockpileId) {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/clearStockpile',
+              data = {
+                stockpileId
+              };
+            requestPost(url, data).then((res) => {
+              that.$message({
+                type: 'success',
+                message: '开门成功!'
+              });
+              that.overtimeOrder();
+            }).catch((err) => {
+              that.$message({
+                type: 'info',
+                message: '开门失败'
+              });
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

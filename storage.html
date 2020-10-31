@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8">
+	<title>BonBon寄存柜</title>
+	<meta name="viewport"
+		content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta name="keywords" content="">
+	<meta name="description" content="">
+	<link rel="stylesheet" href="libs/weui.min.css">
+	<link rel="stylesheet" href="libs/jquery-weui.min.css">
+	<link rel="stylesheet" href="libs/index.css">
+	<link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+</head>
+
+<body class="bg-white">
+	<div id="app" v-cloak v-loading='loading' element-loading-text="读取柜子信息">
+		<div class="weui-cell topbar bg-white" v-if='cabinetList.device_info'>
+			<div class="weui-cell__bd oneline">
+				{{cabinetList.device_info.site_name}}-{{cabinetList.device_info.device_name}}</div>
+			<div class="weui-cell__ft text-xs">营业时间：{{cabinetList.device_info.device_operating_date}}</div>
+		</div>
+		<div class="padding bg-gray">请选择您要寄存的柜门号：</div>
+		<div class="weui-tab">
+			<div class="weui-navbar">
+				<span :class="{'weui-bar__item--on':index==ii}" class="weui-navbar__item "
+					v-for='(item,index) in cabinet' :key='index' @click='userSelect(index)'>{{item.norm_str}}</span>
+			</div>
+			<!-- full checked -->
+			<div class="weui-tab__bd" v-if='cabinet'>
+				<div id="tab1" class="weui-tab__bd-item weui-tab__bd-item--active">
+					<div class="boxlist">
+						<div class="boxitem" v-for='(item,index) in cabinet[ii].list' :key='index'
+							:class="{'checked':item.status == 0,'full':index == cii}" @click='userAdd(index)'>
+							<div class="size">{{item.norm==1?'大柜':item.norm==2?'中柜':'小柜'}}</div>
+							<div class="boxnum center " style="font-size:18px">
+								{{cabinetList.device_info.device_name}}-{{item.name}}</div>
+						</div>
+					</div>
+					<div class="fixed-h"></div>
+					<div class="btnbottom"><button class="weui-btn" @click='hrefPay();'>确定</button></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+	<script src="libs/request.js"></script>
+	<script src="libs/fastclick.js"></script>
+	<script src="libs/vue.min.js"></script>
+	<script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+
+	<script>
+		$(function () {
+			FastClick.attach(document.body);
+			let isPageHide = false;
+			window.addEventListener('pageshow', function () {
+				if (isPageHide) {
+					window.location.reload();
+				}
+			});
+			window.addEventListener('pagehide', function () {
+				isPageHide = true;
+			});
+		});
+	</script>
+	<script src="libs/jquery-weui.min.js"></script>
+	<script>
+		$(function () {
+			new Vue({
+				el: "#app",
+				data() {
+					return {
+						/** 
+						 *@param {object} cabinet ,cabinetList 场所信息,场所列表;
+						 *@param {number} ii 选择柜子的规则(大柜,小柜),cii(选择的柜子号) 
+						 */
+						cabinet: [],
+						cabinetList: {},
+						ii: 0,
+						cii: -1,
+						loading: false
+					}
+				},
+				created() {
+					let that = this;
+					// 获取指定设备数据
+					that.listsData();
+				},
+				destroyed() {
+					this.loading = false;
+				},
+				methods: {
+					/**
+					 *@method userSelect() 点击事件,用户选择柜子规格;
+					 *@param {*} index 选择柜子规格的下标, cii = -1 选择完初始化选择的柜子
+					 */
+					userSelect(index) {
+						let that = this;
+						that.ii = index;
+						that.cii = -1;
+					},
+					/**
+					*@method userAdd() 点击事件 用户选择柜子显示;
+					*@param {*} index 选择柜子的下标,根据下标去查柜子列表,当前柜子的信息; 
+					*/
+					userAdd(index) {
+						let that = this,
+							cabinet = that.cabinet[that.ii].list[index];
+						if (cabinet.status == 0) return that.$message({
+							message: '该柜子已占用',
+							type: 'warning',
+							offset: 40
+						});
+						that.cii = index;
+					},
+					/**
+					*@method hrefPay() 选择需要支付的柜子,跳转 pay.html;
+					*@param {*} cii 小于0 用户没有选择柜子提醒用户 ii柜子规格信息,cii柜子信息;
+					*@param {number} id柜子id , @method pathUrl('device_id')  设备id
+					*/
+					hrefPay() {
+						let that = this;
+						if (that.cii < 0) return that.$message({
+							showClose: true,
+							message: '请选择一个柜子寄存物品',
+							type: 'error',
+							offset: 40
+						});
+						that.loading = true;
+						setTimeout(() => {
+							window.location.href = 'pay.html?id=' + that.cabinet[that.ii].list[
+								that.cii].id + '&device_id=' + that.pathUrl('device_id');
+						}, 500);
+					},
+					// 柜子列表数据
+					/**
+					*@method listsData()柜子列表信息;
+					*@param {string} url 请求接口
+					*@param {object} data 请求参数 {device_id:@method pathUrl('device_id')} 设备id; 
+					*@callback then()=> @param {obejct} res => @method for...of 循环获取设备柜子信息 => that.cabinetList 保存设备信息; catch=>err 错误处理; 
+					*/
+					listsData() {
+						let url = '/api.php?s=/DeviceSub/lists',
+							data = {
+								device_id: this.pathUrl('device_id')
+							},
+							that = this,
+							cabinet = that.cabinet;
+						requestGet(url, data).then((resp) => {
+							// 处理数据
+							for (let item of resp.data.list) {
+								if (item.norm_str) {
+									cabinet.push(item);
+								}
+							};
+							that.cabinetList = resp.data;
+						}).catch((err) => {
+							that.loading = true;
+							that.$message({
+								showClose: true,
+								message: err.msg,
+								type: 'error',
+								offset: 40
+							});
+							setTimeout(() => {
+								window.location.href = 'index.html'
+							}, 1200);
+						})
+					},
+					// 解析url 参数
+					pathUrl(name) {
+						let data = window.location.search.substring(1);
+						for (let item of data.split('&')) {
+							if (name == item.split('=')[0]) {
+								return item.split('=')[1]
+							}
+						};
+					},
+				}
+			})
+		})
+	</script>
+</body>
+
+</html>

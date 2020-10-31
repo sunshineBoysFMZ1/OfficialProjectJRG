@@ -1,0 +1,256 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>BonBon寄存柜-取包</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .dialog-item {
+      margin-bottom: 30px
+    }
+
+    .dialog-item:last-child {
+      margin-bottom: 0
+    }
+
+    .weui-dialog__bd:first-child {
+      padding: 50px 30px 30px;
+    }
+
+    .dialog-item button {
+      border-radius: 40px;
+      background: #F65452;
+      line-height: 50px;
+      margin-bottom: 8px;
+      border: 0;
+    }
+
+    .dialog-item p {
+      text-align: left;
+      color: #666
+    }
+
+    .padding {
+      padding: 20px 15px
+    }
+
+    .weui-cells {
+      margin-top: 0;
+      padding-top: 20px;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px;
+      align-items: flex-start;
+    }
+
+    .weui-cells:before {
+      left: 15px;
+      right: 15px
+    }
+
+    .weui-cells:after,
+    .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cell .weui-cell__bd {
+      text-align: right;
+      margin-left: 10px
+    }
+
+    .weui-icon-success-circle {
+      color: #F65452
+    }
+
+    .el-message-box {
+      width: 340px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading' :element-loading-text="text">
+    <div class="margin bg-white radius shadow">
+      <div class="padding center">
+        <i class="weui-icon-success-circle weui-icon_msg"></i>
+        <div class="t_address"><span class="text-red">{{boorData.text}}</span></div>
+        <div class="text-gray text-df">本次寄存已结束，请取出所有物品</div>
+        <div class="text-red margin-top"><i class="weui-icon-warn"></i>请随手关门，柜门未关会继续扣费！</div>
+      </div>
+      <!-- <div class="weui-cells">
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存时间：</div>
+          <div class="weui-cell__bd">2020-05-20 13:00</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">使用时长：</div>
+          <div class="weui-cell__bd">30分钟</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存地址：</div>
+          <div class="weui-cell__bd">健身房-A</div>
+        </div>
+      </div>
+    </div> -->
+      <div class="padding btnitem" @click='usermy();'><button class="weui-btn">完成</button></div>
+
+      <div class="foot">
+        <div class="flex align-center text-df text-gray">
+          <a class="fitems" href="feedback.html">遇到问题？投诉反馈</a>
+        </div>
+      </div>
+    </div>
+
+    <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+    <script src="libs/fastclick.js"></script>
+    <script>
+      $(function () {
+        FastClick.attach(document.body);
+      });
+
+      $(document).on("click", "#show-confirm", function () {
+        $.confirm("55556666", "联系工作人员", function () {
+          location.href = "tel:55556666";
+        }, function () {
+          //取消操作
+        });
+      });
+    </script>
+    <script src="libs/jquery-weui.min.js"></script>
+    <script src="libs/request.js"></script>
+    <script src="libs/vue.min.js"></script>
+    <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+    <script>
+      $(function () {
+        new Vue({
+          el: "#app",
+          data() {
+            return {
+              /**
+              *@param {object} boorData 柜子信息;
+              */
+              loading: true,
+              boorData: {},
+              text: "获取开门状态..."
+            }
+          },
+          created() {
+            let that = this;
+            that.box_door();
+          },
+          methods: {
+            /**
+            *@method box_door() 柜子是否开门;
+            *@param {string} device_sub_id  @method that.pathUrl('id') 柜子id ;
+            *@callback then()=> @param {object}  res = > that.boorData 柜子信息; if(res.data.box_door @param {number} box_door 柜子返回状态 == 0 ) =>@method  door_on() 调用方法弹出弹框再次开锁;catch=>err错误处理;
+            */
+            box_door() {
+              let that = this,
+                url = '/api.php?s=/device_sub/box_door',
+                data = {
+                  device_sub_id: that.pathUrl('id')
+                };
+              requestGet(url, data).then((res) => {
+                setTimeout(() => {
+                  that.boorData = res.data;
+                  that.loading = false;
+                  if (res.data.box_door == 0) {
+                    that.door_on();
+                  }
+                }, 100);
+              }).catch((err) => {
+                that.$message({
+                  message: err.msg,
+                  type: 'warning'
+                });
+              })
+            },
+            // 获取url参数列表
+            pathUrl(name) {
+              let data = window.location.search.substring(1);
+              for (let item of data.split('&')) {
+                if (name == item.split('=')[0]) {
+                  return item.split('=')[1]
+                }
+              }
+            },
+            // 
+            /**
+            *@method door_on() 柜门未开启 弹框;
+            *@callback true => @method open() 再次开门接口; false => 用户有钱不想开;
+            */
+            door_on() {
+              let that = this;
+              that.$confirm('柜门未开启?再试一下!', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '已开启',
+                type: 'warning',
+                center: true,
+                callback: (res) => {
+                  if (res == 'confirm') {
+                    that.loading = true;
+                    that.open();
+                  } else {
+                    that.$message({
+                      type: 'info',
+                      message: '已取消'
+                    });
+                  }
+                }
+              })
+            },
+            /**
+            *@method open() 再次开门;
+            *@parma {string} device_sub_id @method that.pathUrl('id') 柜子id; url 请求接口;
+            *@parma {object} data {device_sub_id};
+            *@callback then()=> box_door() 再次调用;catch=>err 取消
+            */
+            open() {
+              let that = this,
+                url = '/api.php?s=/device_sub_log/open',
+                data = {
+                  device_sub_id: that.pathUrl('id')
+                };
+              requestGet(url, data).then((res) => {
+                setTimeout(() => {
+                  that.box_door();
+                }, 100);
+                that.loading = false;
+                this.$message({
+                  message: '柜门已开启',
+                  type: 'success'
+                });
+
+              }).catch((err) => {
+                that.$confirm(err.msg, '提示', {
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消',
+                  type: 'warning',
+                  center: true,
+                  callback: (res) => {}
+                })
+                // that.door_on();
+              })
+            },
+            usermy() {
+              window.location.href = 'my.html';
+            },
+          }
+        })
+      })
+    </script>
+</body>
+
+</html>

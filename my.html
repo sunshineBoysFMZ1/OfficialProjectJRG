@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>个人中心</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-grids:before,
+    .weui-grids:after {
+      height: 0;
+      border: 0;
+      width: 0
+    }
+
+    .weui-grid:nth-child(3n):before {
+      border: 0;
+      width: 0;
+    }
+
+    .weui-cells {
+      margin-top: 0;
+      padding: 15px 0;
+      font-size: 15px
+    }
+
+    .income .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px
+    }
+
+    .income .weui-cells .weui-cell:last-child {
+      margin-bottom: 0
+    }
+
+    .weui-cells:after,
+    .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading' :element-loading-text="text">
+    <div class="userinfo inuser">
+      <div class="weui-cell">
+        <div class="weui-cell__hd"><img :src="userData.avatar"></div>
+        <div class="weui-cell__bd">
+          <p>{{userData.username}}</p>
+          <p class="text-df">ID：{{userData.id}}</p>
+        </div>
+      </div>
+    </div>
+    <div class="margin-sm income" @click='userHref();'>
+      <div class="bg-white radius shadow">
+        <div class="text-center padding">
+          <div class="text-sml text-red">{{listData}}</div>
+          <div class="text-df" style="color:#999">正在使用中的柜门(个)</div>
+        </div>
+      </div>
+    </div>
+    <div class="margin-top-sm bg-white">
+      <div class="weui-grids">
+        <a href="c_personal.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m11.png" alt=""></div>
+          <p class="weui-grid__label">个人信息</p>
+        </a>
+        <a href="list.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m1.png" alt=""></div>
+          <p class="weui-grid__label">存物记录</p>
+        </a>
+        <a href="tuikuan.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m2.png" alt=""></div>
+          <p class="weui-grid__label">余额退款</p>
+        </a>
+        <a href="help.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m3.png" alt=""></div>
+          <p class="weui-grid__label">使用帮助</p>
+        </a>
+        <a href="about.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m4.png" alt=""></div>
+          <p class="weui-grid__label">关于我们</p>
+        </a>
+        <a href="xy.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/qd.png" alt=""></div>
+          <p class="weui-grid__label">用户协议</p>
+        </a>
+      </div>
+    </div>
+    <!-- 关注公众号 -->
+    <div class="demo-image__placeholder erwem" v-if='show'>
+      <div class="block">
+        <span class="demonstration">
+          长按二维码!关注公众号~ <br />
+          关注公众号!享受跟多服务!<br />
+        </span>
+        <el-image :src="src">
+          <div slot="placeholder" class="image-slot">
+            加载中<span class="dot">...</span>
+          </div>
+        </el-image>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          /**
+           * @param {object} userData：用户信息;
+           * @param {Boolean} loading 加载数据状态;show 未关注公众号显示二维码;
+           * @param {string,number} listData 当前用户使用柜子的个数; text加载显示的文本内容;src 二维码图片;
+           */
+          return {
+            userData: {},
+            loading: false,
+            listData: 0,
+            text: "识别用户信息",
+            src: '',
+            show: false
+          }
+        },
+        mounted() {
+          let that = this;
+          /** 如果用户登录就不在调用 直接获取用户信息 @method userInfo;
+           * @method WechatLogin 用户授权登录;
+           * @param {object} window 页面信息;
+           * @callback then=> @param{number,string} res (code) => @method register(res) 注册; catch = > err 错误处理;
+           */
+          if (sessionStorage.getItem('tokens')) {
+            that.loading = true;
+            that.userInfo();
+          } else {
+            WechatLogin(window).then((res) => {
+              that.loading = true;
+              that.register(res);
+            }).catch((err) => {
+              console.log(err)
+            });
+          }
+        },
+        methods: {
+          // 跳转正在使用柜子页面;
+          userHref() {
+            window.location.href = 'taking.html';
+          },
+          /**
+           * @param {number} 1总经理;2加盟身份;3:场所经理;4:场所操作员;5admin,6普通用户;
+           */
+          /**
+           * @method userInfo 获取用户信息; requestGet 封装GET请求方法;
+           * @param {string} url 请求接口;
+           * @param {object} data 请求参数,按需传参 没有传{}/{data:xx}; 
+           * @callback then(res)=> @param {obejct} res => that.userData 用户数据信息 => @method {userInfoMethod()}; catch(err)=>错误处理;
+           * @userInfoMethod {
+           *    绑定身份(从缓存获取info 数据 有就调用绑定 @method binding());
+           *  } 
+           * 
+           */
+          userInfo() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            if (sessionStorage.getItem('info')) {
+              that.binding();
+            } else {
+              console.log('已绑定,或者没有上级')
+            }
+            requestGet(url, data).then((res) => {
+              that.userData = res.data;
+              let data = res.data;
+              // 是否关注公众号 没有关注显示二维码;
+              if (data.subscribe) {
+                // 判断用户是否有身份 有就缓存身份列表的第一个相关信息
+                if (data.identity.length) {
+                  var type = data.identity[0].type;
+                  sessionStorage.setItem('level', type == 'manager' ? 1 : type == 'spread' ? 2 : type ==
+                    'site_manager' ? 3 : type == 'action' ? 4 : type == 'admin' ? 5 : 6);
+                  sessionStorage.setItem('status', JSON.stringify(data.identity[0]));
+                  // that.loading = false;
+                  that.navigator();
+                } else {
+                  // 默认6普通用户
+                  sessionStorage.setItem('level', 6)
+                }
+                // 根据用户身份查询当前是否有储存记录
+                that.using_list();
+              } else {
+                that.src = data.public_qrcode;
+                that.loading = false;
+                that.show = true;
+              }
+            }).catch((err) => {
+              that.loading = true;
+              that.text = err.msg;
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          /**
+           * @method navigator 判断身份跳转;
+           * @param {string} url 根据身份判断需要调整的页面;
+           * @level {number,string} level 当前用户身份;
+           */
+          navigator() {
+            let that = this,
+              level = sessionStorage.getItem('level'),
+              url = 'my.html';
+            if (level == 6) {
+              return;
+            };
+            level == 1 ? url = 'my_jingli.html' : level == 2 ? url = 'my_jiameng.html' : level == 3 ? url =
+              'my_caiwu.html' : level == 4 ? url = 'my_caozuo.html' : level == 5 ? url = 'my_yunying.html' :
+              sessionStorage.setItem('level', 6);
+            window.location.href = url;
+          },
+          /**
+           * @method register 注册;
+           * @param {number,string} code 登录,注册的必传;
+           * @param {string} url 请求接口;
+           * @param {obejct} data 请求参数,没有参数{}必传;
+           * @callback then(res) => @param {object} res (缓存tokens)=>  @method userInfo() 用户信息; catch(err) 错误处理;
+           */
+          register(code) {
+            let that = this,
+              url = '/api.php?s=/user/login',
+              data = {
+                code
+              };
+            requestPost(url, data).then((res) => {
+              sessionStorage.setItem('tokens', res.data.tokens);
+              that.userInfo();
+            }).catch((err) => {
+              that.userInfo();
+            })
+          },
+          /**
+           * @method using_list() 正在使用柜子;
+           * @param {string} url 请求接口;
+           * @param {obejct} data 请求参数,没有参数{}必传;
+           * @callback then(res) => @param {object} res => that.listData 使用柜子个数; catch(err) 错误处理;
+           */
+          using_list() {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/using_list',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.loading = false;
+              if (res.data.length) {
+                that.listData = res.data.length;
+              }
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          /**
+           * @method binding() 绑定身份;
+           * @param {string} url 请求接口;
+           * @param {obejct} data 请求参数,没有参数{}必传 @param {number,string} 身份 0操作员 1经理,@param {string} 场所ID,@param {string} 经理ID;
+           * @callback then(res) => 绑定成功; catch(err) 错误处理;
+           */
+          binding() {
+            let that = this,
+              info = JSON.parse(sessionStorage.getItem('info')),
+              url = '/api.php?s=/site/binding',
+              data = {
+                type: info.type,
+                site_id: info.site_id,
+                manager_id: info.manager_id
+              };
+            requestPost(url, data).then((res) => {
+              sessionStorage.removeItem('info');
+              console.log('绑定')
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        }
+      })
+    })
+   
+  </script>
+</body>
+
+</html>

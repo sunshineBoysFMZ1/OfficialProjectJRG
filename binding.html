@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>身份绑定</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="libs/weui.min.css">
+    <link rel="stylesheet" href="libs/jquery-weui.min.css">
+    <link rel="stylesheet" href="libs/index.css">
+    <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+    <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+    <style>
+        .el-message-box {
+            width: 340px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" v-loading="loading" style="width: 100%" element-loading-text="身份绑定邀请" v-cloak>
+        <div class="topimg radius"><img src="images/tu.jpg"></div>
+    </div>
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+    <script src='libs/request.js'></script>
+    <script src="libs/vue.min.js"></script>
+    <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+    <script>
+        $(function () {
+            new Vue({
+                el: "#app",
+                data() {
+                    return {
+                        loading: true
+                    }
+                },
+                created() {
+                    /**
+                     * @param {object} info 获取绑定信息 type = 场所身份,site_id = 场所id, manager_id = 经理id;
+                     * 缓存 info 信息;
+                     * @method superior() 获取上级经理信息;
+                     */
+                    let that = this,
+                        info = {
+                            type: that.pathUrl('type'),
+                            site_id: that.pathUrl('site_id'),
+                            manager_id: that.pathUrl('manager_id')
+                        };
+                    sessionStorage.setItem('info', JSON.stringify(info))
+                    that.superior();
+                },
+                methods: {
+                    // 解析url 参数
+                    pathUrl(name) {
+                        let data = window.location.search.substring(1);
+                        for (let item of data.split('&')) {
+                            if (name == item.split('=')[0]) {
+                                return item.split('=')[1]
+                            }
+                        };
+                    },
+                    /**
+                     * @method superior() 获取上级信息;
+                     * @param {string} url 请求接口;
+                     * @param {object} data 请求参数 {user_id:@method that.pathUrl('manager_id')} 经理id;
+                     * @callback then()=> @param {object} res => @method takeUp() 授权弹框; catch=>err 错误处理; 
+                     */
+                    superior() {
+                        let that = this,
+                            url = '/api.php?s=/user/getuserinfo',
+                            data = {
+                                user_id: that.pathUrl('manager_id')
+                            };
+                        requestPost(url, data).then((res) => {
+                            that.loading = false;
+                            that.takeUp(res.data.nickname);
+                        }).catch((err) => {
+                            console.log(err)
+                        })
+                    },
+                    // 绑定弹出
+                    /**
+                     * @method takeUp()绑定授权;
+                     * @param {*} type 绑定身份;
+                     * @callback auto => 跳转页面;
+                     */
+                    takeUp(nickname) {
+                        let that = this,
+                            type = that.pathUrl('type') == 1 ? '经理' : '操作员';
+                        that.$confirm('用户' + nickname + '邀请你绑定场所' + type + '身份', '身份绑定邀请', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            center: true,
+                            type: 'info'
+                        }).then(() => {
+                            window.location.href = 'my.html'
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                message: '取消绑定'
+                            });
+                            window.location.href = 'my.html'
+                        });
+                    },
+                },
+            })
+        })
+    </script>
+</body>
+
+</html>

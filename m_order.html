@@ -1,0 +1,263 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>订单情况</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .listbox .weui-cells {
+      margin-top: 0;
+      padding: 15px 0;
+      font-size: 15px
+    }
+
+    .listbox .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px;
+      align-items: flex-start
+    }
+
+    .listbox .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+
+    .listbox .weui-cells .weui-cell:last-child {
+      margin-bottom: 0
+    }
+
+    .p-choose {
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading'>
+    <div class="p-choose fixed bg-white shadow">
+      <div class="weui-cell weui-cell_select weui-cell_select-after">
+        <div class="weui-cell__hd">
+          <label for="" class="weui-label">选择场所：</label>
+        </div>
+        <div class="weui-cell__bd">
+          <select class="weui-select" name="select2" v-module='value' @change='changeValue'>
+            <option value="-1">全部</option>
+            <option :value="index" v-for='(item,index) in siteData' :key='index'>{{item.name}}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="padding-sm">
+      <div class="listbox bg-white radius shadow" v-for='(item,index) in listData' :key='index'>
+        <div class="padding-top">
+          <div class="weui-cell weui-cell_access">
+            <div class="weui-cell__bd">
+              <p>订单编号：{{item.id}}</p>
+            </div>
+            <div class="weui-cell__hd">{{item.status==2?'已结束':item.month ? '已结算' : '待结算'}}</div>
+          </div>
+        </div>
+        <div class="weui-cells">
+          <div class="weui-cell">
+            <div class="weui-cell__hd">使用用户：</div>
+            <div class="weui-cell__bd">{{item.user_nickname}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">寄存门店：</div>
+            <div class="weui-cell__bd">{{item.site_name}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">寄存柜子：</div>
+            <div class="weui-cell__bd">{{item.device_name}}-{{item.device_sub_name}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">寄存时段：</div>
+            <div class="weui-cell__bd">{{item.created_time}}</br> 至 </br> {{item.end_time}}</div>
+          </div>
+        </div>
+        <div class="m_order flex align-center justify-between solid-top text-df">
+          <div class="flex align-center">
+            <p>付款金额：</p>
+            <p class="text-black">￥{{item.pay_money}}</p>
+          </div>
+          <div class="flex align-center text-red" v-if='item.status!=2'>
+            <p>{{item.month ? '已返金额' :'预返佣金'}}：</p>
+            <p class="text-lg">￥{{item.estimate_rebate}}</p>
+          </div>
+        </div>
+        <div class="m_order flex align-center justify-between solid-top text-df" v-if='item.status==2'>
+          <div class="flex align-center text-red">
+            <p>预返佣金：</p>
+            <p class="text-lg">￥{{item.estimate_rebate}}</p>
+          </div>
+          <div class="flex align-center text-red">
+            <p>已返佣金：</p>
+            <p class="text-lg">￥{{item.rebate}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="padding-xl" v-if='listData.length==0'>
+      <div class="emptybox padding-lg text-center">
+        <img src="images/empty.png">
+        <div class="text-ml">暂无记录</div>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            loading: true,
+            level: 0,
+            value: -1,
+            siteData: [],
+            site_id: 0,
+            page: 1,
+            size: 15,
+            listData: [],
+          }
+        },
+        created() {
+          let that = this;
+          // 判断是否有tokens 没有申请授权;
+          if (sessionStorage.getItem('tokens')) {
+            that.userInfoi();
+          } else {
+            WechatLogin(window).then((res) => {
+              that.register(res);
+            }).catch((err) => {
+              console.log(err)
+            });
+          }
+        },
+        mounted() {
+          window.addEventListener('scroll', this.scrollToTop)
+        },
+        methods: {
+          // 注册 
+          register(code) {
+            let that = this,
+              url = '/api.php?s=/user/login',
+              data = {
+                code
+              };
+            requestPost(url, data).then((res) => {
+              sessionStorage.setItem('tokens', res.data.tokens);
+              that.userInfoi();
+            }).catch((err) => {
+              console.log('出错');
+              that.userInfoi();
+            })
+          },
+          userInfoi() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.userData = res.data;
+              let data = res.data;
+              // 判断用户是否有身份 有就缓存身份列表的第一个相关信息
+              if (data.identity.length) {
+                var type = data.identity[0].type;
+                sessionStorage.setItem('level', type == 'manager' ? 1 : type == 'spread' ? 2 : type ==
+                  'site_manager' ? 3 : type == 'action' ? 4 : type == 'admin' ? 5 : 6);
+                sessionStorage.setItem('status', JSON.stringify(data.identity[0]));
+                // 延时请求 根据用户身份跳转
+              } else {
+                // 默认6普通用户
+                sessionStorage.setItem('level', 6)
+              }
+              // 根据用户身份查询当前是否有储存记录
+              that.level = sessionStorage.getItem('level');
+              that.action_site_list();
+              that.orderList(0);
+            }).catch((err) => {
+              that.loading = true;
+              that.text = err.msg;
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          action_site_list() {
+            let that = this,
+              url = '/api.php?s=/site/action_site_list',
+              data = {
+                type: JSON.parse(sessionStorage.getItem('status')).type
+              };
+            requestGet(url, data).then((res) => {
+              that.siteData = res.data;
+              that.site_id = res.data[0].id;
+              that.loading = false;
+            })
+          },
+          changeValue(e) {
+            let that = this;
+            that.site_id = e.target.value == -1 ? 0 : that.siteData[e.target.value].id;
+            that.orderList(that.site_id);
+          },
+          // 请求订单记录
+          orderList(site_id) {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/orderList',
+              data = {
+                site_id,
+                page: 1,
+                size: 20,
+                type: JSON.parse(sessionStorage.getItem('status')).type
+              };
+            requestPost(url, data).then((res) => {
+              that.listData = res.data;
+            })
+          },
+          scrollToTop() {
+            var that = this,
+              scrollTop = document.documentElement.scrollTop || document.body.scrollTop,
+              windowHeight = document.documentElement.clientHeight || document.body.clientHeight,
+              scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+            if (scrollTop + windowHeight == scrollHeight) {
+              let that = this,
+                p = that.page < 2 ? 2 : that.page,
+                url = '/api.php?s=/UserStockpile/orderList',
+                data = {
+                  site_id: that.site_id,
+                  page: p,
+                  size: 15,
+                  type: JSON.parse(sessionStorage.getItem('status')).type
+                };
+              requestGet(url, data).then((res) => {
+                if (res.data.data.length) {
+                  that.listData = that.listData.concat(res.data.data);
+                  p++;
+                  that.page = p;
+                }
+              }).catch((err) => {
+                console.log(err)
+              })
+            } else {
+              // that.loading = true;
+            }
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

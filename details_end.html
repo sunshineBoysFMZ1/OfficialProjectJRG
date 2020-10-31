@@ -1,0 +1,258 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>寄存柜-使用</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <style>
+    .dialog-item {
+      margin-bottom: 30px
+    }
+
+    .dialog-item:last-child {
+      margin-bottom: 0
+    }
+
+    .weui-dialog__bd {
+      line-height: 1.5
+    }
+
+    .weui-dialog__bd:first-child {
+      padding: 50px 30px 30px;
+    }
+
+    .dialog-item button {
+      border-radius: 40px;
+      background: #F65452;
+      line-height: 50px;
+      margin-bottom: 8px;
+      border: 0;
+    }
+
+    .dialog-item p {
+      text-align: left;
+      color: #666
+    }
+
+    .padding {
+      padding: 20px 15px
+    }
+
+    .weui-cells {
+      margin-top: 0;
+      padding: 10px 0;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 5px 15px;
+    }
+
+    .flex-start .weui-cell {
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+
+    .weui-cells:after,
+    .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-grid {
+      padding: 6px 0;
+    }
+
+    .weui-btn {
+      background: none;
+      border: 0;
+      color: #F65452
+    }
+
+    .weui-grid:first-child .weui-btn {
+      color: #333
+    }
+
+    .btnitem .weui-btn {
+      height: 50px;
+      line-height: 20px
+    }
+
+    .btnitem .weui-btn p {
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak>
+    <div class="margin bg-white radius shadow">
+      <div class="weui-cells bg-grey">
+        <div class="weui-cell">
+          <div class="weui-cell__bd">已结束</div>
+          <div class="weui-cell__ft text-gray">共使用30分钟</div>
+        </div>
+      </div>
+      <div class="weui-cells flex-start">
+        <div class="weui-cell">
+          <div class="weui-cell__hd">用户昵称：</div>
+          <div class="weui-cell__bd text-black">胡桃夹子</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存门店：</div>
+          <div class="weui-cell__bd text-black">健身房-A</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存地址：</div>
+          <div class="weui-cell__bd text-black">健身房-A</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存柜子：</div>
+          <div class="weui-cell__bd text-black">A-03号</div>
+        </div>
+      </div>
+      <div class="weui-cells flex-start">
+        <div class="weui-cell">
+          <div class="weui-cell__hd">订单编号：</div>
+          <div class="weui-cell__bd text-black">145245484225</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">支付押金：</div>
+          <div class="weui-cell__bd text-black">5元（可使用1小时）</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">订单费用：</div>
+          <div class="weui-cell__bd text-black">3元</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">使用时长：</div>
+          <div class="weui-cell__bd text-black">30分钟</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">计费模式：</div>
+          <div class="weui-cell__bd text-black">按时计费</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">计费标准：</div>
+          <div class="weui-cell__bd text-black">3元/小时，一天封顶20元，中途可多次开门</div>
+        </div>
+      </div>
+      <div class="weui-cells flex-start">
+        <div class="weui-cell">
+          <div class="weui-cell__hd">开门记录</div>
+        </div>
+        <div class="weui-cell text-orange">
+          <div class="weui-cell__hd">创建订单：</div>
+          <div class="weui-cell__bd">2020-05-20 13:00</div>
+        </div>
+        <div class="weui-cell text-orange">
+          <div class="weui-cell__hd">中途开门：</div>
+          <div class="weui-cell__bd">2020-05-20 13:18</div>
+        </div>
+        <div class="weui-cell text-orange">
+          <div class="weui-cell__hd">结束寄存：</div>
+          <div class="weui-cell__bd">2020-05-20 13:30</div>
+        </div>
+      </div>
+      <!-- 
+
+       -->
+
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            data: {},
+            content: {}
+          }
+        },
+        created() {
+          let that = this;
+          that.asyncFun();
+        },
+        methods: {
+          async asyncFun() {
+            let that = this;
+            try {
+              that.content = await updateResturant(that.data);
+              console.log(that.content)
+            } catch {
+              console.log('出错', updateResturant(that.data))
+            }
+          }
+        }
+      })
+    })
+
+    paying: function (wxjson) {
+            var that = this;
+            function onBridgeReady() {
+              WeixinJSBridge.invoke(
+                'getBrandWCPayRequest', {
+                  "appId": wxjson.appId, //公众号名称，由商户传入  能和我争第一的,只有人品差到爆的pgone
+                    //别把社会的言论,当成你的弱点, 
+                  "timeStamp": wxjson.timeStamp, //时间戳，自1970年以来的秒数     
+                  "nonceStr": wxjson.nonceStr, //随机串     
+                  "package": wxjson.package,
+                  "signType": wxjson.signType, //微信签名方式：     
+                  "paySign": wxjson.paySign //微信签名 
+                },
+                function (res) {
+                  if (res.err_msg == "get_brand_wcpay_request:ok") {
+                    that.$notify({
+                      title: '支付成功',
+                      message: '柜门支付成功',
+                      offset: 55,
+                      type: 'success'
+                    });
+                    that.loading = true;
+                    setTimeout(() => {
+                      window.location.href = 'payopen.html?id=' + that.pathUrl('id')
+                    }, 1500);
+                  } else {
+                    that.$notify.info({
+                      title: '支付失败',
+                      message: '取消寄存',
+                      offset: 55,
+                      type: 'success'
+                    });
+                  }
+                });
+            }
+            if (typeof WeixinJSBridge == "undefined") {
+              if (document.addEventListener) {
+                document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+              } else if (document.attachEvent) {
+                document.attachEvent('WeixinJSBridgeReady', onBridgeReady);
+                document.attachEvent('onWeixinJSBridgeReady', onBridgeReady);
+              }
+            } else {
+              onBridgeReady();
+            }
+          }
+  </script>
+</body>
+
+</html>

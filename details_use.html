@@ -1,0 +1,462 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>BonBon寄存柜-使用</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .dialog-item {
+      margin-bottom: 30px
+    }
+
+    .dialog-item:last-child {
+      margin-bottom: 0
+    }
+
+    .weui-dialog__bd {
+      line-height: 1.5
+    }
+
+    .weui-dialog__bd:first-child {
+      padding: 50px 30px 30px;
+    }
+
+    .dialog-item button {
+      border-radius: 40px;
+      background: #F65452;
+      line-height: 50px;
+      margin-bottom: 8px;
+      border: 0;
+    }
+
+    .dialog-item p {
+      text-align: left;
+      color: #666
+    }
+
+    .padding {
+      padding: 20px 15px
+    }
+
+    .weui-cells {
+      margin-top: 0;
+      padding: 10px 0;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 5px 15px;
+    }
+
+    .flex-start .weui-cell {
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+
+    .weui-cells:after,
+    .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-grid {
+      padding: 6px 0;
+    }
+
+    .weui-btn {
+      background: none;
+      border: 0;
+      color: #F65452
+    }
+
+    .weui-grid:first-child .weui-btn {
+      color: #333
+    }
+
+    .btnitem .weui-btn {
+      height: 50px;
+      line-height: 20px
+    }
+
+    .btnitem .weui-btn p {
+      font-size: 12px;
+    }
+
+    .weui-grids:after,
+    .weui-grid:last-child:before {
+      border: 0;
+      width: 0
+    }
+
+    .weui-cells.btn {
+      padding: 6px 0;
+    }
+
+    .el-message-box {
+      width: 340px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading' element-loading-text="获取订单信息">
+    <div class="margin bg-white radius shadow">
+      <div class="weui-cells" :class="{'bg-gray':infoData.status == 2,'bg-red':infoData.status == 0}">
+        <div class="weui-cell">
+          <div class="weui-cell__bd">{{infoData.status == 0 ? '使用中' : infoData.status == 1 ? '取物中':'已结束'}}</div>
+          <div class="weui-cell__ft text-gray">已使用{{infoData.usage_time}}</div>
+        </div>
+      </div>
+      <div class="weui-cells flex-start">
+        <div class="weui-cell">
+          <div class="weui-cell__hd">用户昵称：</div>
+          <div class="weui-cell__bd text-black">{{infoData.user_username}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存门店：</div>
+          <div class="weui-cell__bd text-black">{{infoData.site_name}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存地址：</div>
+          <div class="weui-cell__bd text-black">{{infoData.site_address}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存柜子：</div>
+          <div class="weui-cell__bd text-black">{{infoData.device_address}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">场所电话：</div>
+          <div class="weui-cell__bd text-blue">
+            <a :href="'tel:'+infoData.site_phone" class="text-blue">{{infoData.site_phone}}</a>
+          </div>
+        </div>
+      </div>
+      <div class="weui-cells flex-start">
+        <div class="weui-cell">
+          <div class="weui-cell__hd">订单编号：</div>
+          <div class="weui-cell__bd text-black">{{infoData.orders_out_trade_no}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">支付押金：</div>
+          <div class="weui-cell__bd text-black">{{infoData.charge_cash_pledge}}元</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">本次消费：</div>
+          <div class="weui-cell__bd text-black">{{infoData.end_price ? infoData.end_price : 0 }}元</div>
+        </div>
+        <!-- 欠费金额 -->
+        <div class="weui-cell" v-if='infoData.is_arrears == 1 && infoData.status == 2'>
+          <div class="weui-cell__hd">欠费余额：</div>
+          <div class="weui-cell__bd text-black">{{infoData.arrears}}元</div>
+        </div>
+        <!-- 是否关门 -->
+        <div class="weui-cell" v-if='infoData.status == 2'>
+          <div class="weui-cell__hd">是否关门：</div>
+          <div class="weui-cell__bd text-black">{{infoData.is_close ? '是' : '否'}}</div>
+        </div>
+        <!-- 未关门扣费金额 -->
+        <div class="weui-cell" v-if='infoData.status == 2 && infoData.no_close_price !="0.00" '>
+          <div class="weui-cell__hd">未关门扣费：</div>
+          <div class="weui-cell__bd text-red">{{infoData.no_close_price}}元</div>
+        </div>
+        <!-- 欠费缴清 -->
+
+        <div class="weui-cell">
+          <div class="weui-cell__hd">使用时长：</div>
+          <div class="weui-cell__bd text-black">{{infoData.usage_time}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">计费模式：</div>
+          <div class="weui-cell__bd text-black">{{infoData.charge_type_str}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">计费标准：</div>
+          <div class="weui-cell__bd text-black" v-if='infoData.charge_memo'>{{infoData.charge_memo}}</div>
+          <div class="weui-cell__bd text-black" v-else>未设置</div>
+        </div>
+      </div>
+      <div class="weui-cells flex-start">
+        <div class="weui-cell">
+          <div class="weui-cell__hd">开门记录</div>
+        </div>
+        <div class="weui-cell text-orange" v-for='(item,index) in infoData.deviceSubLog' :key='index'>
+          <div class="weui-cell__hd" v-if='item.type==1'>{{item.action_type}}：</div>
+          <div class="weui-cell__hd" v-else-if='item.type==2'>{{item.status_str}}：</div>
+          <div class="weui-cell__hd" v-else>其它操作：</div>
+          <div class="weui-cell__bd">{{item.created_time}}</div>
+        </div>
+      </div>
+      <div class="weui-cells btn" v-if='infoData.status != 2 && infoData.hidden == 0'
+        @click='end_open(infoData.id,infoData.device_sub_id);'>
+        <button class="weui-btn open-popup">关闭订单</button>
+      </div>
+    </div>
+
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+
+    $(document).on("click", "#show-confirm", function () {
+      $.confirm("临时开柜门，关闭柜门后，本次寄存继续", "中途开门?", function () {
+        // $.toast("提示");
+        location.href = "midopen.html";
+      }, function () {
+        //取消操作
+      });
+    });
+
+    $(document).on("open", ".weui-popup-modal", function () {
+      console.log("open popup");
+    }).on("close", ".weui-popup-modal", function () {
+      console.log("close popup");
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            /**
+             * @param {object} infoData 用户信息;
+             */
+            infoData: {},
+            loading: true
+          }
+        },
+        created() {
+          let that = this;
+          // 判断是否有tokens 没有申请授权 否则 @method infoGoods()调用信息;
+          /**
+           * @method WechatLogin() 授权登录;
+           * @param {object} window 网页信息;
+           * @callback then()=> @param {number} res =>@method register(res) 注册;catch=>err 错误处理;
+           */
+          if (sessionStorage.getItem('tokens')) {
+            that.infoGoods();
+          } else {
+            WechatLogin(window).then((res) => {
+              that.register(res);
+            }).catch((err) => {
+              console.log(err)
+            });
+          }
+
+        },
+        methods: {
+          /**
+           * @method register() 注册 ;
+           * @param {number} code 注册code;
+           * @param {string} url  请求接口;
+           * @param {object} data 接口传参 {code};
+           * @callback then()=> @param {object} res , 缓存tokens => @method userInfoi();用户身份; catch=>err 错误处理;
+           */
+          register(code) {
+            let that = this,
+              url = '/api.php?s=/user/login',
+              data = {
+                code
+              };
+            requestPost(url, data).then((res) => {
+              sessionStorage.setItem('tokens', res.data.tokens);
+              that.userInfoi();
+            }).catch((err) => {
+              that.userInfoi();
+            })
+          },
+          /**
+           * @method userInfoi() 获取用户信息;
+           * @param {string} url 请求接口;
+           * @parma {object} 请求参数 无{};
+           * @callback then()=> @param {object} res => @method infoGoods() 订单信息; catch=>err 错误处理;
+           */
+          userInfoi() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.userData = res.data;
+              that.loading = false;
+              that.infoGoods();
+            }).catch((err) => {
+              that.loading = true;
+              that.text = err.msg;
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          /**
+           * @method infoGoods() 订单信息;
+           * @param {string} url 请求接口;
+           * @parma {object} data 请求参数 {id:@method that.pathUrl('id') 寄存id};
+           * @callback then()=>@param {object} res => that.infoData;
+           */
+          infoGoods() {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/info',
+              data = {
+                id: that.pathUrl('id')
+              };
+            requestGet(url, data).then((res) => {
+              that.infoData = res.data;
+              that.loading = false;
+            }).catch((err) => {
+              that.$message({
+                type: 'info',
+                message: err.msg
+              });
+              setTimeout(() => {
+                window.location.href = 'my.html';
+              }, 1000);
+            })
+          },
+          // 解析url 参数
+          pathUrl(name) {
+            let data = window.location.search.substring(1);
+            for (let item of data.split('&')) {
+              if (name == item.split('=')[0]) {
+                return item.split('=')[1]
+              }
+            };
+          },
+          /**
+           * @method end_open() 结束订单;
+           * @param {string} id:存物记录id,device_id:柜门id,type:type状态;
+           * @callback true => @method halfway_open(); false => 取消处理;
+           */
+          end_open(id, device_id) {
+            let that = this;
+            that.$confirm(' 关闭订单,柜门不会打开,结束本次寄存', '关闭订单', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning',
+              center: true,
+              callback: (res) => {
+                if (res == 'confirm') {
+                  var type = 3;
+                  that.halfway_open(id, type, device_id);
+                } else {
+                  that.$message({
+                    type: 'info',
+                    message: '已取消'
+                  });
+                }
+              }
+            })
+          },
+          /**
+           * @method halfway_open() 开门;
+           * @param {string} id:存物记录id,device_id:柜门id,type:type状态;
+           * @param {string} url 请求接口;
+           * @param {object} data 请求参数 {id:存物记录id,type:开门type};
+           * @callback then()=> @param {object} res : if { res.code && res.data(获取返回微信支付参数) } 有数据走微信支付 => @method paying(); else 余额支付 成功直接结束订单返回; catch=>err 错误处理;
+           */
+          halfway_open(id, type, device_id) {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/halfway_open',
+              data = {
+                id,
+                type
+              };
+            requestGet(url, data).then((res) => {
+              if (res.code == 1 && res.data) {
+                that.paying(res.data, device_id, type);
+              } else {
+                that.loading = true;
+                that.$notify({
+                  title: '结束订单',
+                  message: '当前订单已关闭',
+                  offset: 55,
+                  type: 'success'
+                });
+                setTimeout(() => {
+                  window.location.href = document.referrer;
+                }, 1000);
+                // var url = type == 1 ? 'midopen.html?id=' + device_id : 'takingopen.html?id=' + device_id;
+                // window.location.href = url;
+              }
+            }).catch((err) => {
+              this.$message.error(err.msg);
+            })
+          },
+          /**
+           * @method paying() 微信支付;
+           * @param {object} wxjson 微信支付object;
+           * @param {number,string} device_id柜子id(废弃), type(废弃);
+           * @callback true => 支付成功关闭结束订单返回; false 取消支付
+           */
+          paying: function (wxjson, device_id, type) {
+            var that = this;
+            console.log(device_id, type)
+
+            function onBridgeReady() {
+              WeixinJSBridge.invoke(
+                'getBrandWCPayRequest', {
+                  "appId": wxjson.appId, //公众号名称，由商户传入     
+                  "timeStamp": wxjson.timeStamp, //时间戳，自1970年以来的秒数     
+                  "nonceStr": wxjson.nonceStr, //随机串     
+                  "package": wxjson.package,
+                  "signType": wxjson.signType, //微信签名方式：     
+                  "paySign": wxjson.paySign //微信签名 
+                },
+                function (res) {
+                  if (res.err_msg == "get_brand_wcpay_request:ok") {
+                    that.$notify({
+                      title: '支付成功',
+                      message: '柜门支付成功',
+                      offset: 55,
+                      type: 'success'
+                    });
+                    that.loading = true;
+                    setTimeout(() => {
+                      // var url = type == 1 ? 'midopen.html?id=' + device_id : 'takingopen.html?id=' +
+                      //   device_id;
+                      // window.location.href = url;
+                      window.location.href = document.referrer;
+                    }, 1500);
+                  } else {
+                    that.$notify.info({
+                      title: '支付失败',
+                      message: '取消',
+                      offset: 55,
+                      type: 'success'
+                    });
+                  }
+                });
+            }
+            if (typeof WeixinJSBridge == "undefined") {
+              if (document.addEventListener) {
+                document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+              } else if (document.attachEvent) {
+                document.attachEvent('WeixinJSBridgeReady', onBridgeReady);
+                document.attachEvent('onWeixinJSBridgeReady', onBridgeReady);
+              }
+            } else {
+              onBridgeReady();
+            }
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>更换取物码</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    label {
+      width: calc(4em + 5px);
+      display: block;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading'>
+    <div class="margin bg-white radius shadow">
+      <div class="weui-cell">
+        <div class="weui-cell__hd input-icon"><img src="images/password.png" /></div>
+        <div class="weui-cell__hd"><label>取物码：</label></div>
+        <div class="weui-cell__bd">
+          <input class="weui-input pass" placeholder="请重新设置6位取物密码" :value="pass" type="tel" maxlength="6">
+        </div>
+      </div>
+    </div>
+    <div class="content-padded" @click='set_filed()'><button class="weui-btn">确认更换</button></div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            pass: "",
+            loading: false
+          }
+        },
+        created() {
+          let that = this;
+          that.pass = JSON.parse(sessionStorage.getItem('about')).stockpile_password
+        },
+        methods: {
+          set_filed() {
+            if ($('.pass').val().length < 6 || $('.pass').val().length > 6) {
+              this.$message({
+                message: "输入完整,正确的取物码",
+                type: "warning"
+              });
+              return;
+            }
+            let that = this,
+              url = '/api.php?s=/user/set_filed',
+              data = {
+                filed: 'stockpile_password',
+                value: $('.pass').val()
+              };
+            requestPost(url, data).then((res) => {
+              that.loading = true;
+              that.$message({
+                message: res.msg,
+                type: 'success'
+              });
+              setTimeout(() => {
+                window.location.href = document.referrer
+              }, 800);
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        },
+      })
+    })
+  </script>
+</body>
+
+</html>

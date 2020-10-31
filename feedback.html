@@ -1,0 +1,211 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>投诉反馈</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-label {
+      width: calc(5em + 5px);
+      display: block;
+    }
+
+    .weui-cell:before {
+      left: 0
+    }
+
+    .weui-textarea {
+      height: 7em
+    }
+
+    .padding {
+      padding: 0 15px;
+    }
+
+    .weui-grids:after,
+    .weui-grid:after,
+    .weui-grid:before,
+    .weui-grids:before {
+      border: 0;
+      width: 0;
+      height: 0
+    }
+
+    .weui-grid {
+      width: 50%;
+      padding: 0 10px 10px 0;
+    }
+
+    .weui-icon-checked {
+      border: solid 1px #dcdcdc;
+      padding: 10px 15px;
+      border-radius: 6px;
+      line-height: 1.5;
+      text-align: center;
+      width: 100%;
+      min-height: 66px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .weui-cells_radio .weui-check:checked+.text {
+      border-color: #F65452
+    }
+
+    .weui-cells_radio .weui-check:checked+.weui-icon-checked {
+      border-color: #F65452;
+      color: #F65452
+    }
+
+    .weui-cells_radio .weui-check:checked+.weui-icon-checked:before {
+      display: none
+    }
+
+    /*.tips{display:none}*/
+    .weui-cells_radio .weui-check:checked+.weui-icon-checked.other+.tips {
+      display: block;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <!-- <div class="margin bg-white radius shadow">
+    <div class="weui-cell weui-cell_select weui-cell_select-after">
+      <div class="weui-cell__hd">
+          <label for="" class="weui-label">反馈原因：</label>
+        </div>
+        <div class="weui-cell__bd">
+          <select class="weui-select" name="select2">
+            <option value="1">已支付，柜门未打开</option>
+            <option value="2">中途开门，柜门未打开</option>
+            <option value="3">结束寄存，柜门未打开</option>
+            <option value="4">其他</option>
+          </select>
+        </div>
+    </div> -->
+  <div id="app" v-cloak>
+    <div class="margin bg-white radius shadow" v-loading='loading'>
+      <div class="weui-cell">
+        <div class="weui-cell__hd">
+          <label for="" class="weui-label">反馈原因：</label>
+        </div>
+      </div>
+      <div class="weui-grids weui-cells_radio padding">
+        <label class="weui-grid js_grid weui-check__label" for="x11" @click='select(1)'>
+          <input type="radio" class="weui-check" name="radio1" id="x11" checked="checked">
+          <span class="weui-icon-checked">已支付，柜门未打开</span>
+        </label>
+        <label class="weui-grid js_grid weui-check__label" for="x12" @click='select(2)'>
+          <input type="radio" name="radio1" class="weui-check" id="x12">
+          <span class="weui-icon-checked">中途开门，柜门未打开</span>
+        </label>
+        <label class="weui-grid js_grid weui-check__label" for="x13" @click='select(3)'>
+          <input type="radio" name="radio1" class="weui-check" id="x13">
+          <span class="weui-icon-checked">结束寄存，柜门未打开</span>
+        </label>
+        <label class="weui-grid js_grid weui-check__label" for="x14" @click='select(4)'>
+          <input type="radio" name="radio1" class="weui-check" id="x14">
+          <span class="weui-icon-checked other">其他</span>
+
+        </label>
+
+      </div>
+      <div class="weui-cell flex-start tips">
+        <div class="weui-cell__hd"><label>反馈说明：</label></div>
+        <div class="weui-cell__bd">
+          <textarea class="weui-textarea text" type="" placeholder="请输入您的反馈说明"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="content-padded" @click='submit();'><button class="weui-btn">提交反馈</button></div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+    $(document).on("click", "#show-confirm", function () {
+      $.confirm("临时开柜门，关闭柜门后，本次寄存继续", "中途开门?", function () {
+        // $.toast("提示");
+        location.href = "midopen.html";
+      }, function () {
+        //取消操作
+      });
+    });
+
+    $(document).on("open", ".weui-popup-modal", function () {
+      console.log("open popup");
+    }).on("close", ".weui-popup-modal", function () {
+      console.log("close popup");
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: '#app',
+        data() {
+          return {
+            /**
+             * @param {string} type 反馈类型:1=已支付，柜门未开,2=中途开门,柜门未开,3=结束寄存,柜门未开,4=其他
+             */
+            type: 1,
+            loading: false
+          }
+        },
+        methods: {
+          /**
+           * @method submit() 提交反馈;
+           * @param {string} type 反馈类型:1=已支付，柜门未开,2=中途开门,柜门未开,3=结束寄存,柜门未开,4=其他;
+           * @param {string} url 请求接口;
+           * @param {object} data 请求参数 {type,memo:备注};
+           * @callback then()=> @param {object} res =>提交成功返回;catch=>err 错误处理;
+          */
+          submit() {
+            let that = this,
+              url = '/api.php?s=/Feedback/submit',
+              data = {
+                type: that.type,
+                memo: $('.text').val()
+              };
+            requestPost(url, data).then((res) => {
+              this.$message({
+                message: res.msg,
+                type: 'success'
+              });
+              that.loading = true
+              setTimeout(() => {
+                window.location.href = document.referrer;
+              }, 800);
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          // 选择反馈状态;
+          select(e) {
+            this.type = e;
+          }
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>用户协议</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="libs/weui.min.css">
+    <link rel="stylesheet" href="libs/jquery-weui.min.css">
+    <link rel="stylesheet" href="libs/index.css">
+    <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+    <style>
+        .weui-cells {
+            margin-top: 0;
+            padding: 15px 0;
+            font-size: 15px
+        }
+
+        .weui-cell {
+            padding: 0 15px;
+            margin-bottom: 10px
+        }
+
+        .weui-cells:before {
+            left: 15px;
+            right: 15px
+        }
+
+        .weui-cells:after,
+        .weui-cell:before {
+            height: 0;
+            border: 0;
+        }
+
+        .weui-cells .weui-cell:last-child {
+            margin-bottom: 0
+        }
+    </style>
+</head>
+
+<body class="bg-white">
+    <div id="app" v-cloak>
+        <div class="padding-xl text-center">
+            <div class="imglogo"><img :src="xieyiData.logo"></div>
+            <div class="text-ml margin-sm text-bold text-black">{{xieyiData.name}}</div>
+            <div class="text-df text-left">
+                <!-- {{aboutData.info}} -->
+            </div>
+        </div>
+        <div class="foot">
+            <div class="text-center text-sm text-gray">
+                <a class="text-blue" :href="'tel:'+aboutData.phone">联系我们：{{aboutData.phone}}</a>
+            </div>
+        </div>
+    </div>
+    <script src='libs/request.js'></script>
+    <script src="libs/vue.min.js"></script>
+    <script>
+        $(function () {
+            new Vue({
+                el: "#app",
+                data() {
+                    return {
+                        aboutData: {},
+                        xieyiData: {}
+                    }
+                },
+                created() {
+                    let that = this;
+                    that.about();
+                    that.lists();
+                },
+                methods: {
+                    // 关于我们
+                    about() {
+                        let that = this,
+                            url = '/api.php?s=/Setting/about',
+                            data = {};
+                        requestGet(url, data).then((res) => {
+                            that.aboutData = res.data;
+                        }).catch((err) => {
+
+                        })
+                    },
+                    //  用户协议
+                    lists() {
+                        let that = this,
+                            url = '/api.php?s=/Article/lists',
+                            data = {
+                                article_cate_id: 5
+                            };
+                        requestGet(url, data).then((res) => {
+                            that.xieyiData = res.data[0];
+                            $('.text-df').html(res.data[0].info)
+                        }).catch((err) => {
+
+                        })
+                    },
+
+                }
+            })
+        })
+    </script>
+</body>
+
+</html>

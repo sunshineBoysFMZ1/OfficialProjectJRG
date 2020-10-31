@@ -1,0 +1,247 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>开柜记录</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cells {
+      margin-top: 0;
+      padding: 10px 0;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 0 15px;
+      padding-bottom: 8px;
+    }
+
+    .weui-cell .weui-cell__hd {
+      color: #777
+    }
+
+    .weui-cell:last-child {
+      padding-bottom: 0;
+    }
+
+    .weui-cell:before {
+      border: 0;
+      height: 0
+    }
+
+    .weui-grid:before {
+      top: 10px;
+      bottom: 10px
+    }
+
+    .weui-grid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .weui-grid img {
+      width: 12px;
+      margin-left: 7px
+    }
+
+    .weui-navbar.fixed {
+      top: 44px
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading'>
+    <div class="selectbox bg-white text-center">
+      <div class="weui-grid oneline">
+        <el-select v-model="value" placeholder="请选择" class="weui-select oneline" @change='changeVone'>
+          <el-option v-for='(item,index) in site_device' :key='index' :key="index" :label="item.name" :value="index">
+          </el-option>
+        </el-select>
+      </div>
+      <div class="weui-grid oneline">
+        <el-select v-model="values" placeholder="请选择" class="weui-select oneline" @change='changeVtwo'>
+          <el-option v-for='(item,index) in device' :key='index' :key="index" :label="item.name" :value="index">
+          </el-option>
+        </el-select>
+      </div>
+      <div class="weui-grid oneline">
+        <el-select v-model="valuea" placeholder="请选择" class="weui-select oneline" @change='changeVfro'>
+          <el-option v-for='(item,index) in device_sub' :key='index' :key="index" :label="item.name" :value="index">
+          </el-option>
+        </el-select>
+      </div>
+    </div>
+    <div class="weui-tab">
+      <div class="weui-navbar fixed">
+        <a class="weui-navbar__item weui-bar__item--on" href="#tab1" @click='user()'>用户</a>
+        <a class="weui-navbar__item" href="#tab2" @click='site()'>场所人员</a>
+      </div>
+      <div class="weui-tab__bd">
+        <div class="weui-tab__bd-item " style="display:block" v-if='type==1'>
+          <div class="margin-sm">
+            <div class="listbox bg-white radius shadow" v-for='(item,index) in logData' :key='index'>
+              <div class="padding text-lg">
+                <p style="width: 300px;overflow: hidden;text-overflow:ellipsis;white-space: nowrap;
+                ">用户昵称：{{item.user.username}}</p>
+              </div>
+              <div class="weui-cells" v-if='item.device_sub_log.length'>
+                <div class="weui-cell" v-for='(time,ii) in item.device_sub_log' :key='index'>
+                  <div class="weui-cell__hd">{{time.status == 1 ? '中途开门' : time.status == 2 ? '结束使用' : '开始使用'}}：</div>
+                  <div class="weui-cell__bd">{{time.created_time}}</div>
+                </div>
+              </div>
+              <div v-else class="weui-cells" style="text-align:center">
+                暂未有开门记录
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="weui-tab__bd-item" style="display:block" v-if='type==2'>
+          <div class="margin-sm">
+            <div class="listbox bg-white radius shadow" v-for='(item,index) in siteData' :key='index'>
+              <div class="padding text-lg flex justify-between align-center">
+                <p style="width: 170px;overflow: hidden;text-overflow:ellipsis;white-space: nowrap;
+                ">人员姓名：{{item.action.username}}</p>
+                <p class="text-df" v-if='item.action.type'>身份：{{item.action.type}}</p>
+              </div>
+              <div class="weui-cells">
+                <div class="weui-cell">
+                  <div class="weui-cell__hd">{{item.memo}}：</div>
+                  <div class="weui-cell__bd">{{item.created_time}}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- end -->
+      </div>
+      <div class="padding-xl" v-show='length == 0'>
+        <div class="emptybox padding-lg text-center">
+          <img src="images/empty.png">
+          <div class="text-ml">暂无记录</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            loading: false,
+            userInfo: {},
+            site_device: [],
+            device: [],
+            device_sub: [],
+            value: '',
+            values: '',
+            valuea: '',
+            type: 1,
+            logData: [],
+            siteData: [],
+            device_sub_id: 0
+          }
+        },
+        created() {
+          let that = this;
+          that.userInfo = JSON.parse(sessionStorage.getItem('status'));
+          that.site_device_device_sub();
+        },
+        methods: {
+          site_device_device_sub() {
+            let that = this,
+              url = '/api.php?s=/site/site_device_device_sub',
+              data = {
+                type: that.userInfo.type
+              };
+            requestGet(url, data).then((res) => {
+              that.site_device = res.data;
+            })
+          },
+          changeVone(e) {
+            let that = this;
+            that.value = e;
+            that.device = [];
+            that.device_sub = [];
+            that.values = '';
+            that.valuea = '';
+            that.device = that.site_device[e].device;
+          },
+          changeVtwo(e) {
+            let that = this;
+            that.device_sub = [];
+            that.valuea = '';
+            that.values = e;
+            that.device_sub = that.device[e].device_sub;
+          },
+          changeVfro(e) {
+            let that = this;
+            that.device_sub_id = that.device[that.values].device_sub[e].id;
+            that.log(that.device[that.values].device_sub[e].id, that.type)
+          },
+          // 开柜记录
+          log(device_sub_id, type) {
+            let that = this,
+              url = '/api.php?s=/device_sub_log/log',
+              data = {
+                type,
+                device_sub_id,
+                identity: that.userInfo.type
+              };
+            requestGet(url, data).then((res) => {
+              that.length = res.data.length;
+              if (type == 1) {
+                that.logData = res.data;
+              } else {
+                that.siteData = res.data;
+              }
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          // 用户
+          user() {
+            let that = this;
+            that.type = 1;
+            that.log(that.device_sub_id, that.type)
+          },
+          // 操作
+          site() {
+            let that = this;
+            that.type = 2;
+            that.log(that.device_sub_id, that.type)
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

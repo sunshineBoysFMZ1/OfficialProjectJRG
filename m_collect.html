@@ -1,0 +1,176 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>财务中心</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cell:before {
+      left: 0
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading' element-loading-text="获取场所信息...">
+    <div class="p-choose bg-white radius shadow">
+      <div class="weui-cell weui-cell_select weui-cell_select-after">
+        <div class="weui-cell__hd">
+          <label for="" class="weui-label">选择场所：</label>
+        </div>
+        <div class="weui-cell__bd">
+          <select class="weui-select" name="select2" v-module='value' @change='changeValue'>
+            <option value="-1">全部</option>
+            <option :value="index" v-for='(item,index) in siteData' :key='index'>{{item.name}}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="margin-sm">
+      <div class="bg-red radius shadow">
+        <div class="text-center padding-xl">
+          <div class="text-df">返佣余额（元）</div>
+          <div class="text-sml">{{fundData.commission_money}}</div>
+        </div>
+        <div class="data flex">
+          <div class="item flex-sub text-center">
+            <div class="text-sm text-gray">待入账（元）</div>
+            <div class="text-lg text-black">{{fundData.pending_money}}</div>
+          </div>
+          <div class="item flex-sub text-center">
+            <div class="text-sm text-gray">累计返佣（元）</div>
+            <div class="text-lg text-black">{{fundData.commission}}</div>
+          </div>
+          <div class="item flex-sub text-center">
+            <div class="text-sm text-gray">累计提现（元）</div>
+            <div class="text-lg text-black">{{fundData.withdraw}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pagebox">
+      <div class="weui-cells bg-white radius shadow">
+        <a class="weui-cell weui-cell_access" href="apply.html">
+          <div class="weui-cell__hd"><img src="images/m16.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>申请结佣</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="record.html">
+          <div class="weui-cell__hd"><img src="images/m2.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>佣金记录</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="tx.html">
+          <div class="weui-cell__hd"><img src="images/m1.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>提现记录</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            /**
+             *@param {object} siteData 选择场所,userInfo 用户信息,fundData 返佣金额
+             *@param {number} level 用户权限,value 选择的场所信息;
+             */
+            loading: true,
+            level: 0,
+            value: -1,
+            moneyData: {},
+            siteData: [],
+            userInfo: {},
+            fundData: {}
+          }
+        },
+        created() {
+          /**
+           * 运用缓存读取用户信息 可优化
+           */
+          let that = this,
+            site_id = '';
+          that.level = sessionStorage.getItem('level');
+          that.userInfo = JSON.parse(sessionStorage.getItem('status'))
+          that.action_site_list();
+          that.fund_statistics(site_id)
+        },
+        methods: {
+          /**
+           *@method action_site_list() 获取可用场所;
+           *@param {string} url 请求接口;
+           *@param {object} data 请求参数 {type:用户type身份}
+           *@callback then()=> @param {object} res　=> that.siteData  场所列表;
+           */
+          action_site_list() {
+            let that = this,
+              url = '/api.php?s=/site/action_site_list',
+              data = {
+                type: JSON.parse(sessionStorage.getItem('status')).type
+              };
+            requestGet(url, data).then((res) => {
+              that.siteData = res.data;
+              that.loading = false;
+            })
+          },
+          /**
+          *@method changeValue() change事件 选择场所
+          *@param {object} e 选择select 返回方法属性
+          *@param {*} site_id 选择的场所id if==-1 赋值为 空;
+          *@method fund_statistics() 选择场所下的财务中心;
+          */
+          changeValue(e) {
+            let that = this,
+              site_id = e.target.value != -1 ? that.siteData[e.target.value].id : '';
+            that.fund_statistics(site_id)
+          },
+          /**
+          *@method fund_statistics() 场所财务中心
+          *@param {string} site_id 场所id 默认为空 全部 , url 请求接口
+          *@param {object} data 请求参数 {type:用户身份type,site_id};
+          *@callback then()=> @param {object} res => that.fundData 财务信息; catch=>err 错误处理;
+          */
+          fund_statistics(site_id) {
+            let that = this,
+              url = '/api.php?s=/site/fund_statistics',
+              data = {
+                type: that.userInfo.type,
+                site_id
+              };
+            requestGet(url, data).then((res) => {
+              that.fundData = res.data;
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

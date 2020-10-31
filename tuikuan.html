@@ -1,0 +1,144 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>余额退款</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <!-- <link rel="stylesheet" href="libs/element/index.css"> -->
+  <style>
+    .weui-cells {
+      margin-top: 0;
+      padding: 15px 0;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px
+    }
+
+    .weui-cells:before {
+      left: 15px;
+      right: 15px
+    }
+
+    .weui-cells:after,
+    .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cells .weui-cell:last-child {
+      margin-bottom: 0
+    }
+
+    .el-message-box {
+      width: 320px;
+    }
+  </style>
+</head>
+
+<body class="bg-white">
+  <div id="app" v-cloak v-loading='loading' element-loading-text="访问信息">
+    <div class="padding-lg">
+      <div class="flex justify-end">
+        <a class="text-green" href="txlist.html">余额记录</a>
+      </div>
+      <div class="margin-top-xl text-center">
+        <div class="money">{{userData.money}}</div>
+        <div class="text-df">账户余额（元）</div>
+      </div>
+      <div class="btn margin-top" @click='openTake();'>
+        <button class="weui-btn">提现到微信钱包</button>
+      </div>
+    </div>
+
+  </div>
+  <!-- <div class="foot">
+  <div class="text-center">
+    <div class="text-df">提现说明</div>
+    <div class="text-sm">订单结束后可随时提现</div>
+  </div>
+</div> -->
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            userData: {},
+            loading: true
+          }
+        },
+        created() {
+          let that = this;
+          that.userInfo();
+        },
+        methods: {
+          userInfo() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.userData = res.data;
+              let data = res.data;
+              that.loading = false;
+            })
+          },
+          openTake() {
+            let that = this;
+            that.$confirm('是否提现全部余额', '提现余额', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning',
+              callback: (res) => {
+                if (res == 'confirm') {
+                  that.refund();
+                } else {
+                  that.$message({
+                    type: 'info',
+                    message: '取消'
+                  });
+                }
+              }
+            })
+          },
+          // 退款
+          refund() {
+            let that = this,
+              url = '/api.php?s=/order/refund',
+              data = {
+                price: that.userData.money
+              };
+            requestGet(url, data).then((res) => {
+              that.$message({
+                message: res.msg,
+                type: 'success'
+              });
+              that.userInfo();
+            }).catch((err) => {
+              that.$notify.error({
+                title: '提现错误',
+                message: err.msg
+              });
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

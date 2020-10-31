@@ -1,0 +1,170 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>我的订单</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cells {
+      margin-top: 0;
+      padding: 15px 0;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px
+    }
+
+    .weui-cells:after,
+    .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cells .weui-cell:last-child {
+      margin-bottom: 0
+    }
+
+    .bg-red .weui-cell_access .weui-cell__ft:after {
+      border-color: rgba(255, 255, 255, 0.9);
+    }
+  </style> 
+</head> 
+<body class="bg-gray">
+  <div id="app" v-loading='loading' v-cloak :element-loading-text="text">
+    <div class="padding-sm">
+      <div class="listbox bg-white radius shadow" v-for='(item,index) in listData' :key='index'>
+        <!--  -->
+        <div class="weui-cells" :class="{'bg-gray':item.status == 2,'bg-red':item.status == 0}">
+          <a class="weui-cell weui-cell_access" :href="'details_use.html?id='+item.id">
+            <div class="weui-cell__bd">
+              <p>{{item.status == 0 ? '使用中' : item.status == 1 ? '取物中' : '已结束'}}</p>
+            </div>
+            <div class="weui-cell__ft text-gray">查看详情</div>
+          </a>
+        </div>
+        <a :href="'details_use.html?id='+item.id">
+          <div class="weui-cells">
+            <div class="weui-cell">
+              <div class="weui-cell__hd">寄存门店：</div>
+              <div class="weui-cell__bd">{{item.site_name}}</div>
+            </div>
+            <div class="weui-cell">
+              <div class="weui-cell__hd">寄存柜子：</div>
+              <div class="weui-cell__bd">{{item.device_address}}</div>
+            </div>
+            <div class="weui-cell">
+              <div class="weui-cell__hd">寄存时间：</div>
+              <div class="weui-cell__bd">{{item.created_time}}</div>
+            </div>
+            <div class="weui-cell">
+              <div class="weui-cell__hd">计费模式：</div>
+              <div class="weui-cell__bd">{{item.charge_type_str}}</div>
+            </div>
+            <!-- 是否关门 -->
+            <div class="weui-cell" v-if='item.status == 2'>
+              <div class="weui-cell__hd">是否关门：</div>
+              <div class="weui-cell__bd text-red">{{item.is_close ? '是' : '否'}}</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+    <div class="padding-xl" :class="{'none':listData.length}">
+      <div class="emptybox padding-lg text-center">
+        <img src="images/empty.png">
+        <div class="text-ml">暂无记录</div>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            /**
+             * @param {object} listData 数据列表
+             */
+            loading: true,
+            listData: [],
+            length: 0,
+            page: 1,
+            text: "获取订单信息..."
+          }
+        },
+        created() {
+          let that = this;
+          that.list_info();
+        }, 
+        methods: {
+          /**
+           * @method list_info() 订单列表;
+           * @param {string} url 请求接口;
+           * @param {object} data 请求参数 {page:页数,size:条数};
+           * @callback then()=> @param {object} res =>that.listData; catch=>err 错误处理;
+           */
+          list_info() {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/list_info',
+              data = {
+                page: 1,
+                size: 15,
+              };
+            requestGet(url, data).then((res) => {
+              that.loading = false;
+              that.listData = res.data.data;
+            }).catch((err) => {
+              that.text = err.msg;
+            })
+          },
+          // 上拉加载
+          scrollToTop() {
+            var that = this,
+              scrollTop = document.documentElement.scrollTop || document.body.scrollTop,
+              windowHeight = document.documentElement.clientHeight || document.body.clientHeight,
+              scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+            if (scrollTop + windowHeight == scrollHeight) {
+              let that = this,
+                p = that.page < 2 ? 2 : that.page,
+                url = '/api.php?s=/UserStockpile/list_info',
+                data = {
+                  page: p,
+                  size: 15
+                };
+              requestGet(url, data).then((res) => {
+                if (res.data.data.length) {
+                  that.listData = that.listData.concat(res.data.data);
+                  p++;
+                  that.page = p;
+                }
+              }).catch((err) => {
+                console.log(err)
+              })
+            } else {
+              // that.loading = true;
+            }
+          },
+        },
+        mounted() {
+          window.addEventListener('scroll', this.scrollToTop)
+        },
+      })
+    })
+  </script>
+</body>
+
+</html>

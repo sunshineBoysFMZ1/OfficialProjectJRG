@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>设备状态</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .equipment img {
+      width: 24px;
+      height: 24px;
+      display: block;
+      margin: 0 5px
+    }
+
+    .weui-cells {
+      margin-top: 0;
+      padding: 15px 0;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px;
+      align-items: flex-start
+    }
+
+    .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cells .weui-cell:last-child {
+      margin-bottom: 0
+    }
+  </style>
+</head>
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading'>
+    <div class="padding-sm" v-for='(item,index) in actionList' :key='index'>
+      <div class="listbox bg-white radius shadow">
+        <div class="padding-top">
+          <div class="weui-cell equipment">
+            <div class="weui-cell__bd">
+              <p>{{item.site_name}}-{{item.name}}</p>
+            </div>
+            <div class="weui-cell__hd flex align-center">
+              <img src="images/online.png" v-if='item.status ==1 && item.serve_status == 1'>
+              <img src="images/offline.png" v-else>
+              <p>{{(item.status == 1 && item.serve_status == 1) ? '在线' : '离线'}}</p>
+            </div>
+          </div>
+        </div>
+        <div class="weui-cells">
+          <div class="weui-cell" v-if='item.status == 0'>
+            <div class="weui-cell__hd">离线时长：</div>
+            <div class="weui-cell__bd">{{item.offline_time}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">设备编号：</div>
+            <div class="weui-cell__bd" v-if='item.code'>{{item.code}}</div>
+            <div class="weui-cell__bd" v-else>无</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">设备型号：</div>
+            <div class="weui-cell__bd">{{item.board}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">设备地址：</div>
+            <div class="weui-cell__bd">{{item.site_name}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">场所电话：</div>
+            <a class="weui-cell__bd text-red" :href="'tel:'+item.mobile" v-if='item.mobile'>{{item.mobile}}</a>
+            <a href="javascript:;" class="weui-cell__bd text-red" v-else>无</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="padding-xl" v-if='actionList.length == 0 '>
+      <div class="emptybox padding-lg text-center">
+        <img src="images/empty.png">
+        <div class="text-ml">暂无设备</div>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            loading: true,
+            userInfo: {},
+            actionList: []
+          }
+        },
+        created() {
+          let that = this;
+          // 判断是否有tokens 没有申请授权;
+          if (sessionStorage.getItem('tokens')) {
+            that.userInfoi();
+          } else {
+            WechatLogin(window).then((res) => {
+              that.register(res);
+            }).catch((err) => {
+              console.log(err)
+            });
+          }
+        },
+        methods: {
+          action() {
+            let that = this,
+              url = '/api.php?s=/device/lists',
+              data = {
+                type: JSON.parse(sessionStorage.getItem('status')).type
+              };
+            requestGet(url, data).then((res) => {
+              that.loading = false;
+              that.actionList = res.data;
+            }).catch((err) => {
+              console.log(err)
+            })
+          },
+          // 注册 
+          register(code) {
+            let that = this,
+              url = '/api.php?s=/user/login',
+              data = {
+                code
+              };
+            requestPost(url, data).then((res) => {
+              sessionStorage.setItem('tokens', res.data.tokens);
+              that.userInfoi();
+            }).catch((err) => {
+              console.log('出错');
+              that.userInfoi();
+            })
+          },
+          userInfoi() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.userData = res.data;
+              let data = res.data;
+              that.loading = false;
+              // 判断用户是否有身份 有就缓存身份列表的第一个相关信息
+              if (data.identity.length) {
+                var type = data.identity[0].type;
+                sessionStorage.setItem('level', type == 'manager' ? 1 : type == 'spread' ? 2 : type ==
+                  'site_manager' ? 3 : type == 'action' ? 4 : type == 'admin' ? 5 : 6);
+                sessionStorage.setItem('status', JSON.stringify(data.identity[0]));
+                that.action();
+              } else {
+                // 默认6普通用户
+                sessionStorage.setItem('level', 6);
+                that.loading = true;
+                that.$message({
+                  message: '用户身份不符',
+                  type: 'warning'
+                });
+                setTimeout(() => {
+                  window.location.href = 'my.html';
+                })
+              }
+            }).catch((err) => {
+              that.loading = true;
+              that.text = err.msg;
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,194 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>绑定身份</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .codebox {
+      padding-top: 0
+    }
+
+    .weui-cells {
+      margin-top: 0
+    }
+
+    .btn button {
+      line-height: 34px;
+      height: 34px;
+      padding: 0;
+      width: 86px;
+      font-size: 14px;
+      margin-left: 10px
+    }
+
+    .el-radio {
+      display: flex;
+      padding: 10px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading' :element-loading-text="text">
+    <div class="weui-tab">
+      <div class="weui-navbar">
+        <a class="weui-navbar__item weui-bar__item--on" href="#tab1" @click='useradd(1)'>经理绑定</a>
+        <a class="weui-navbar__item" href="#tab2" @click='useradd(0)'>操作员绑定</a>
+      </div>
+      <div class="weui-tab__bd">
+        <a class="management text-right text-orange text-bold" href="management.html">员工管理</a>
+        <div class="weui-tab__bd-item" style="display: block;">
+          <div class="margin radius shadow bg-white">
+            <div class="weui-cells__title">选择绑定场所</div>
+            <el-radio-group v-model="radio" @change='select'>
+              <el-radio :label="index" v-for='(item,index) in siteList' :key='index'>
+                <div class="weui-cell__bd">
+                  <p>{{item.name}}</p>
+                </div>
+              </el-radio>
+            </el-radio-group>
+          </div>
+        </div>
+        <div class="codebox padding">
+          <div class="padding-sm bg-white radius shadow">
+            <div class="flex align-center">
+              <div class="img flex-sub flex align-center oneline">
+                <img :src="userInfo.avatar"></image>
+                <div class="text-lg text-black oneline">{{userInfo.username}}</div>
+              </div>
+              <!-- <div class="btn"><button class="weui-btn">生成绑定码</button></div> -->
+            </div>
+            <div class="codeimg text-center margin-top">
+              <img :src="erm">
+              <div class="text-gray margin-top-sm">扫码绑定身份</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            /**
+             * @param {number} level 用户权限,radio 选择身份场所,type 请求选择场所的二维码, site_id 场所id;
+             * @param {string} erm 二维码图片;
+             */
+            level: 0,
+            radio: 0,
+            type: 1,
+            site_id: 0,
+            siteList: [],
+            userInfo: {},
+            loading: true,
+            erm: '',
+            text: "请求场所信息..."
+          }
+        },
+        created() {
+          let that = this;
+          that.level = sessionStorage.getItem('level');
+          that.userInfo = JSON.parse(sessionStorage.getItem('about'))
+          that.action_site_list();
+        },
+        methods: {
+          /**
+           * @method useradd() 用户点击切换场所;
+           * @param {*} type == e;
+           * @method action_site_list() 请求可用场所;
+           */
+          useradd(e) {
+            let that = this;
+            that.type = e;
+            that.action_site_list();
+            that.text = '切换场所绑定身份...'
+            that.loading = true
+          },
+          // 选择场所
+          select(e) {
+            let that = this,
+              type = that.type,
+              site_id = that.siteList[e].id
+            that.bindingQrcode(type, site_id);
+          },
+          /**
+           * @method action_site_list()当前可用场所;
+           * @param {string} url 请求接口;
+           * @param {object} data {type:当前用户身份type};
+           * @callback then()=> @param {object} res  , that.siteList  => @method bindingQrcode() 获取二维码; catch=>err 错误处理;
+          */
+          action_site_list() {
+            let that = this,
+              url = '/api.php?s=/site/action_site_list',
+              data = {
+                type: JSON.parse(sessionStorage.getItem('status')).type
+              },
+              type = that.type;
+            requestGet(url, data).then((res) => {
+              that.siteList = res.data;
+              that.bindingQrcode(type, res.data[0].id);
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          /**
+           * @method bindingQrcode() 生成二维码;
+           * @param {*} type 绑定身份type , site_id 场所id , path 扫描二维码跳转的页面;
+           * @param {string} url 请求接口 
+           * @param {object} data 请求参数 {type,site_id,path};
+           * @callback then()=> @param {object} res =>  that.erm ; catch=>err 错误处理;
+          */
+          bindingQrcode(type, site_id) {
+            let that = this,
+              url = '/api.php?s=/site/bindingQrcode',
+              data = {
+                type,
+                site_id,
+                path: "http://cunbao.1565.com.cn/index/binding.html"
+              };
+            requestPost(url, data).then((res) => {
+              that.erm = res.data;
+              that.loading = false;
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

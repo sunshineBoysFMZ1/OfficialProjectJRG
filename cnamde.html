@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>更换用户名</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    label {
+      width: calc(4em + 5px);
+      display: block;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading'>
+    <div class="margin bg-white radius shadow">
+      <div class="weui-cell">
+        <div class="weui-cell__hd input-icon"><img src="images/password.png" /></div>
+        <div class="weui-cell__hd"><label>用户名：</label></div>
+        <div class="weui-cell__bd">
+          <input class="weui-input pass" placeholder="请重新设置用户名" :value="pass">
+        </div>
+      </div>
+    </div>
+    <div class="content-padded" @click='set_filed()'><button class="weui-btn">确认更换</button></div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            /**
+             * @param {*} 用户名称;
+            */
+            pass: "",
+            loading: false
+          }
+        },
+        created() {
+          let that = this;
+          that.pass = JSON.parse(sessionStorage.getItem('about')).username
+        },
+        methods: {
+          /**
+           * @method set_filed() 修改名称;
+           * @param {string} url 请求接口;
+           * @param {object} data 请求参数 {filed:修改参数,value:修改的名称};
+           * @callback then()=> @param {object} res => 修改成功;catch => err 错误处理;
+           */
+          set_filed() {
+            if ($('.pass').val() == '') {
+              this.$message({
+                message: "输入完整信息",
+                type: "warning"
+              });
+              return;
+            }
+            let that = this,
+              url = '/api.php?s=/user/set_filed',
+              data = {
+                filed: 'username',
+                value: $('.pass').val()
+              };
+            requestPost(url, data).then((res) => {
+              that.loading = true;
+              that.$message({
+                message: res.msg,
+                type: 'success'
+              });
+              setTimeout(() => {
+                // 返回上一页 并刷新页面;
+                window.location.href = document.referrer
+              }, 800);
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        },
+      })
+    })
+  </script>
+</body>
+
+</html>

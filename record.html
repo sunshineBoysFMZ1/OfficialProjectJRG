@@ -1,0 +1,256 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>佣金记录</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .topnav {
+      position: fixed;
+      top: 0;
+      z-index: 99;
+      width: 100%
+    }
+
+    .weui-cells {
+      margin-top: 0;
+      font-size: 15px
+    }
+
+    .weui-cells:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cell {
+      height: 42px;
+      box-sizing: border-box
+    }
+
+    .topnav+.weui-tab {
+      margin-top: 42px
+    }
+
+    .topnav+.weui-tab .weui-navbar {
+      top: 42px
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak>
+    <div class="topnav bg-white" v-if='userInfo.type == "manager" || userInfo.type =="site_manager"'>
+      <div class=" radius shadow">
+        <div class="weui-cell weui-cell_select weui-cell_select-after">
+          <div class="weui-cell__hd">
+            <label for="" class="weui-label">选择场所：</label>
+          </div>
+          <div class="weui-cell__bd">
+            <select class="weui-select" name="select2" v-module='value' @change='changeValue'>
+              <option value="-1">全部</option>
+              <option :value="index" v-for='(item,index) in siteData' :key='index'>{{item.name}}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="weui-tab">
+      <div class="weui-navbar fixed">
+        <a class="weui-navbar__item" :class="{'weui-bar__item--on':type==1}" @click='userAdd(1);'>已入账佣金</a>
+        <a class="weui-navbar__item" :class="{'weui-bar__item--on':type==2}" @click='userAdd(2);'>待入账佣金</a>
+        <a class="weui-navbar__item" :class="{'weui-bar__item--on':type==3}" @click='userAdd(3);'>已提现佣金</a>
+      </div>
+
+      <div class="weui-tab__bd" v-if='length'>
+        <div class="weui-tab__bd-item" style="display:block">
+          <div class="padding bg-white text-center">
+            <div class="text-gray margin-bottom-sm">{{type == 1 ? '已入账(元)' : type==2 ? '待入账(元)' : '已提现(元)'}}</div>
+            <div class="text-black text-sml text-bold">{{ssion_list.amount}}</div>
+          </div>
+          <div class="cu-list menu sm-border listbox bg-white margin-top-sm" v-if=''>
+            <div class="cu-item" v-for='(item,index) in ssion_list.data.data' :key='index'>
+              <div class="content flex align-center justify-between">
+                <!-- <div>订单编号：202007150023</div> -->
+                <div class="text-gray text-sm">{{item.created_time}}</div>
+              </div>
+              <div class="content flex align-center justify-between" v-if='type==1'>
+                <div>返佣金额：<span class="text-black">{{item.money}}元</span></div>
+                <div>已入账</div>
+              </div>
+              <div class="content flex align-center justify-between" v-else-if='type==2'>
+                <div>返佣金额：<span class="text-black">{{item.money}}元</span></div>
+                <div>待入账</div>
+              </div>
+              <div class="content flex align-center justify-between" v-else>
+                <div>提现佣金：{{item.money}}元</div>
+                <div class="text-gray text-sm">{{item.created_time}}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="padding-xl" v-if='length == 0'>
+        <div class="emptybox padding-lg text-center">
+          <img src="images/empty.png">
+          <div class="text-ml">暂无记录</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            /**
+             * @param {number} level权限,value:场所选择,site_id场所id:0 默认全部,page:请求页数,type:1=已入账，2=待入账，3=已提现;
+             * @param {object} siteData:场所列表,ssion_list:提现信息,userInfo:用户信息;
+             */
+            level: 0,
+            value: -1,
+            site_id: 0,
+            page: 1,
+            length: 0,
+            type: 1, //状态
+            siteData: [],
+            ssion_list: [],
+            userInfo: {}
+          }
+        },
+        created() {
+          let that = this,
+            site = 0;
+          that.level = sessionStorage.getItem('level');
+          that.userInfo = JSON.parse(sessionStorage.getItem('status'));
+          that.action_site_list();
+          that.commission_list(site, that.type);
+        },
+        methods: {
+          /**
+           * @method  userAdd() 用户切换请求状态;
+           * @param {index,type} index == type type:1=已入账，2=待入账，3=已提现;
+           * @method commission_list() type状态下的信息;
+           */
+          userAdd(index) {
+            let that = this,
+              type = index;
+            that.type = index;
+            that.page = 1;
+            that.commission_list(that.site_id, index);
+          },
+          /**
+           * @method action_site_list() 获取可用场所信息;
+           * @param {string} url 请求接口;
+           * @param {object} data 请求参数 {type:	类型 manager=总经理，spread=推广加盟，site_manager=场所经理，action=操作员，admin=管理员};
+           * @callback then()=> @param {object}  res =>  that.siteData; catch=>err 错误处理;
+           */
+          action_site_list() {
+            let that = this,
+              url = '/api.php?s=/site/action_site_list',
+              data = {
+                type: JSON.parse(sessionStorage.getItem('status')).type
+              };
+            requestGet(url, data).then((res) => {
+              that.siteData = res.data;
+            }).catch((err) => {
+              console.log(err)
+            })
+          },
+          /**
+           * @method changeValue(e) 选择场所;
+           * @param {object} e 当前选中场所下标
+           * @param {*} site_id == that.siteData[e.target.value].id;
+           * @method commission_list()场所下的佣金记录;
+          */
+          changeValue(e) {
+            let that = this,
+              site_id = e.target.value == -1 ? 0 : that.siteData[e.target.value].id,
+              type = that.type;
+            that.site_id = e.target.value == -1 ? 0 : that.siteData[e.target.value].id
+            that.commission_list(site_id, type);
+          },
+          /**
+           * @method commission_list() 佣金记录;
+           * @param {string} url 请求接口;
+           * @param {object} datd 请求参数 {type:1=已入账，2=待入账，3=已提现,identity:当前身份,site_id:场所id 0 == 全部,page:1};
+           * @callback then()=> @param {object} res => that.ssion_list; catch=>err 错误处理;
+          */
+          commission_list(site_id, type) {
+            let that = this,
+              data = {
+                type,
+                identity: that.userInfo.type,
+                site_id,
+                page: 1
+              },
+              url = '/api.php?s=/site/commission_list';
+            requestGet(url, data).then((res) => {
+              that.ssion_list = res.data;
+              that.length = res.data.data.data.length
+            }).catch((err) => {
+              console.log(err)
+              // that.$message({
+              //   message: err.msg,
+              //   type: 'warning'
+              // });
+            })
+          },
+          // 加载数据
+          scrollToTop() {
+            var that = this,
+              scrollTop = document.documentElement.scrollTop || document.body.scrollTop,
+              windowHeight = document.documentElement.clientHeight || document.body.clientHeight,
+              scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+            if (scrollTop + windowHeight == scrollHeight) {
+              let that = this,
+                p = that.page < 2 ? 2 : that.page,
+                url = '/api.php?s=/site/commission_list',
+                data = {
+                  page: p,
+                  type: that.type,
+                  identity: that.userInfo.type,
+                  site_id: that.site_id,
+                };
+              requestGet(url, data).then((res) => {
+                if (res.data.data.data.length) {
+                  that.ssion_list.data.data = that.ssion_list.data.data.concat(res.data.data.data);
+                  p++;
+                  that.page = p;
+                }
+              }).catch((err) => {
+                console.log(err)
+              })
+            } else {
+              // that.loading = true;
+            }
+          },
+        },
+        mounted() {
+          window.addEventListener('scroll', this.scrollToTop)
+        },
+      })
+    })
+  </script>
+</body>
+
+</html>

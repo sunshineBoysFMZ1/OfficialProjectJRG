@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>帮助中心</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cell_access:active {
+      background: #fff;
+    }
+
+    /*.weui-cell_access:active .weui-cell__ft:after{transform:rotate(135deg)}*/
+    .item {
+      position: relative;
+    }
+
+    .item:after {
+      content: " ";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      color: #e5e5e5;
+      border-bottom: solid 1px #e5e5e5;
+      z-index: 2;
+      bottom: 0;
+      transform-origin: 0 100%;
+      -webkit-transform: scaleY(.5);
+      transform: scaleY(.5);
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak>
+    <!-- el-icon-arrow-right el-icon-arrow-down -->
+    <div class="cu-list menu">
+      <div class="item bg-white" v-for='(item,index) in list' :key='index' @click='userAdd(index)'>
+        <div class="weui-cell weui-cell_access">
+          <div class="weui-cell__bd">{{item.name}}</div>
+          <div :class="{'el-icon-arrow-down':ii==index,'el-icon-arrow-right':ii != index}"></div>
+        </div>
+        <div class="padding bg-gray" v-if='index == ii'>
+          {{item.info}}
+        </div>
+      </div>
+
+    </div>
+    <div class="foot">
+      <div class="flex align-center text-df text-gray">
+        <a class="fitems" href="feedback.html">遇到问题？投诉反馈</a>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            /**
+             * @param {object} list 帮助列表;
+             */
+            list: [],
+            ii: -1
+          }
+        },
+        created() {
+          let that = this;
+          that.listsData();
+        },
+        methods: {
+          /**
+           * @method listsData() 帮助列表;
+           * @param {article_cate_id}文章分类ID，1=使用帮助;
+           * @callback then()=> @param {object} res => that.list;
+           */
+          listsData() {
+            let that = this,
+              url = '/api.php?s=/Article/lists',
+              data = {
+                article_cate_id: 1
+              };
+            requestGet(url, data).then((res) => {
+              that.list = res.data;
+            })
+          },
+          // 显示点击的内容;
+          userAdd(index) {
+            this.ii = index;
+          },
+        }
+      })
+    })
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,394 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>BonBon寄存柜-取包</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .dialog-item {
+      margin-bottom: 30px
+    }
+
+    .dialog-item:last-child {
+      margin-bottom: 0
+    }
+
+    .weui-dialog__bd:first-child {
+      padding: 50px 30px 30px;
+    }
+
+    .dialog-item button {
+      border-radius: 40px;
+      background: #F65452;
+      line-height: 50px;
+      margin-bottom: 8px;
+      border: 0;
+    }
+
+    .dialog-item p {
+      text-align: left;
+      color: #666
+    }
+
+    .close-popup {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      color: #333;
+      font-size: 30px
+    }
+
+    .padding {
+      padding: 20px 15px
+    }
+
+    .weui-cells {
+      margin-top: 0;
+      padding-top: 20px;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px
+    }
+
+    .weui-cells:before {
+      left: 15px;
+      right: 15px
+    }
+
+    .weui-cells:after,
+    .weui-cell:before {
+      height: 0;
+      border: 0;
+    }
+
+    .btnitem {
+      flex: 1;
+      margin: 0 2%
+    }
+
+    .btnitem:first-child {}
+
+    .btnitem:first-child .weui-btn {
+      background: none;
+      border: solid 1px #F65452;
+      color: #F65452
+    }
+
+    .btnitem .weui-btn {
+      height: 50px;
+      line-height: 20px
+    }
+
+    .btnitem .weui-btn p {
+      font-size: 12px;
+    }
+
+    .el-message-box {
+      width: 340px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading' element-loading-text="数据加载...">
+    <!-- 无存包显示 -->
+    <div class="margin" v-if='show'>
+      <div class="padding text-center">
+        <img src="images/empty.png" width="90px">
+        <p>暂无存包</p>
+      </div>
+    </div>
+    <div v-if='loading' style="width:100%;height: 500px;"></div>
+    <!-- 有存包显示 -->
+    <div class="margin bg-white radius" v-for='(item,index) in listData' :key='index'>
+      <div class="padding">
+        <div class="takingnum">
+          <p>{{item.device_name}}-{{item.device_sub_name}}<span>柜门</span></p>
+        </div>
+        <div class="t_address">{{item.device}}</div>
+      </div>
+      <div class="weui-cells">
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存场所：</div>
+          <div class="weui-cell__bd text-red">{{item.site_name}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">使用时长：</div>
+          <div class="weui-cell__bd">{{item.usage_time}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">寄存时间：</div>
+          <div class="weui-cell__bd">{{item.created_time}}</div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd">计费模式：</div>
+          <div class="weui-cell__bd">{{item.charge_type_str}}</div>
+        </div>
+        <div class="weui-cell" v-if='item.charge_type!=3'>
+          <div class="weui-cell__hd">消费金额：</div>
+          <div class="weui-cell__bd">{{item.end_price}}元</div>
+        </div>
+        <div class="weui-cell" v-if='item.expire_month'>
+          <div class="weui-cell__hd">到期时间：</div>
+          <div class="weui-cell__bd text-red">{{item.expire_month_str}}</div>
+        </div>
+      </div>
+      <div class="content-padded btnbox">
+        <div v-if='item.hidden == 0 && item.charge_type==3' class="btnitem"
+          @click='end_open(item.id,item.device_sub_id,item.expire_month_str,item.charge_type);'>
+          <button class="weui-btn">结束寄存<p>开门并结束</p>
+          </button></div>
+        <div v-if='item.charge_type!=3' class="btnitem"
+          @click='end_open(item.id,item.device_sub_id,item.expire_month_str,item.charge_type);'><button
+            class="weui-btn">结束寄存<p>开门并结束</p>
+          </button></div>
+        <!-- <div v-if='item.hidden == 0 && item.charge_type==3' class="btnitem"
+          @click='center_open(item.id,item.device_sub_id);'>
+          <button class="weui-btn">中途开门<p>继续使用</p>
+          </button></div> -->
+        <div class="btnitem" @click='center_open(item.id,item.device_sub_id,item.expire_month_str,item.charge_type);'>
+          <button class="weui-btn">中途开门<p>
+              继续使用</p>
+          </button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+    $(document).on("open", ".weui-popup-modal", function () {
+      console.log("open popup");
+    }).on("close", ".weui-popup-modal", function () {
+      console.log("close popup");
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            listData: [],
+            loading: true,
+            id: 0,
+            type: 0,
+            show: false,
+            timeDay: 0
+          }
+        },
+        created() {
+          let that = this;
+          that.timeDay = new Date().getTime();
+          WechatLogin(window).then((res) => {
+            that.register(res);
+          }).catch((err) => {
+            console.log(err)
+          });
+        },
+        methods: {
+          // 计算包月显示按钮
+          month(data) {
+            for (let item of data) {
+              if (item.charge_type == 3) {
+                var date1 = new Date(item.created_time);
+                var date2 = new Date(date1);
+                date2.setDate(date1.getDate() + 28 + 1);
+                item.entime = new Date(date2).getTime();
+              }
+            }
+          },
+          using_list() {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/using_list',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.loading = false;
+              that.listData = res.data;
+              that.month(res.data);
+              if (that.listData == 0) {
+                that.show = true
+              }
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          // 注册 
+          register(code) {
+            let that = this,
+              url = '/api.php?s=/user/login',
+              data = {
+                code
+              };
+            requestPost(url, data).then((res) => {
+              sessionStorage.setItem('tokens', res.data.tokens);
+              that.userInfo();
+            }).catch((err) => {
+              that.userInfo();
+            })
+          },
+          userInfo() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.userData = res.data;
+              let data = res.data;
+              that.loading = false;
+              sessionStorage.setItem('level', data.manager_identify ? 1 : data.spread_identify ? 2 : data
+                .site_manager_identify ? 3 : data.action_identify ? 4 : 5);
+              that.using_list();
+            }).catch((err) => {
+              that.loading = true;
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          // 取物
+          end_open(id, device_id, expire_month_str, charge_type) {
+            let that = this,
+              message = '取出物品,关闭柜门,结束寄存';
+            if (charge_type == 3 && (new Date().getTime() > new Date(expire_month_str).getTime())) {
+              message = '包月到期，结束需要续费。如继续使用，请取消后选择中途开门';
+            }
+            that.$confirm(message, '结束寄存', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning',
+              center: true,
+              callback: (res) => {
+                if (res == 'confirm') {
+                  var type = 2;
+                  that.halfway_open(id, type, device_id);
+                } else {
+                  that.$message({
+                    type: 'info',
+                    message: '已取消'
+                  });
+                }
+              }
+            })
+          },
+          // 中途取物
+          center_open(id, device_id, expire_month_str, charge_type) {
+            let that = this,
+              message = '临时开柜门，关闭柜门后，本次寄存继续!';
+            if (charge_type == 3 && (new Date().getTime() > new Date(expire_month_str).getTime())) {
+              message = '包月已过期，请续费继续使用';
+            }
+            that.$confirm(message, '中途开门', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning',
+              center: true,
+              callback: (res) => {
+                if (res == 'confirm') {
+                  var type = 1;
+                  that.halfway_open(id, type, device_id);
+                } else {
+                  that.$message({
+                    type: 'info',
+                    message: '已取消'
+                  });
+                }
+              }
+            })
+          },
+          // 开门
+          halfway_open(id, type, device_id) {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/halfway_open',
+              data = {
+                id,
+                type
+              };
+            requestGet(url, data).then((res) => {
+              if (res.code == 1 && res.data) {
+                that.paying(res.data, device_id, type);
+              } else {
+                var url = type == 1 ? 'midopen.html?id=' + device_id : 'takingopen.html?id=' + device_id;
+                window.location.href = url;
+              }
+            }).catch((err) => {
+              this.$message.error(err.msg);
+            })
+          },
+          // 支付
+          paying: function (wxjson, device_id, type) {
+            var that = this;
+
+            function onBridgeReady() {
+              WeixinJSBridge.invoke(
+                'getBrandWCPayRequest', {
+                  "appId": wxjson.appId, //公众号名称，由商户传入     
+                  "timeStamp": wxjson.timeStamp, //时间戳，自1970年以来的秒数     
+                  "nonceStr": wxjson.nonceStr, //随机串     
+                  "package": wxjson.package,
+                  "signType": wxjson.signType, //微信签名方式：     
+                  "paySign": wxjson.paySign //微信签名 
+                },
+                function (res) {
+                  if (res.err_msg == "get_brand_wcpay_request:ok") {
+                    that.$notify({
+                      title: '支付成功',
+                      message: '柜门支付成功',
+                      offset: 55,
+                      type: 'success'
+                    });
+                    // that.loading = true;
+                    // setTimeout(() => {
+                    var url = type == 1 ? 'midopen.html?id=' + device_id : 'takingopen.html?id=' +
+                      device_id;
+                    window.location.href = url;
+                    // }, 1500);
+                  } else {
+                    that.$notify.info({
+                      title: '支付失败',
+                      message: '取消',
+                      offset: 55,
+                      type: 'success'
+                    });
+                  }
+                });
+            }
+            if (typeof WeixinJSBridge == "undefined") {
+              if (document.addEventListener) {
+                document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+              } else if (document.attachEvent) {
+                document.attachEvent('WeixinJSBridgeReady', onBridgeReady);
+                document.attachEvent('onWeixinJSBridgeReady', onBridgeReady);
+              }
+            } else {
+              onBridgeReady();
+            }
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

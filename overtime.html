@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>寄存柜-取包</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="libs/weui.min.css">
+    <link rel="stylesheet" href="libs/jquery-weui.min.css">
+    <link rel="stylesheet" href="libs/index.css">
+    <style>
+    .dialog-item{margin-bottom:30px}
+    .dialog-item:last-child{margin-bottom:0}
+    .weui-dialog__bd:first-child{padding:50px 30px 30px;}
+    .dialog-item button{border-radius:40px;background:#F65452;line-height:50px;margin-bottom:8px;border:0;}
+    .dialog-item p{text-align:left;color:#666}
+    .padding{padding:20px 15px}
+    .weui-cells{margin-top:0;padding-top:20px;font-size:15px}
+    .weui-cell{padding:0 15px;margin-bottom:10px;align-items:flex-start;}
+    .weui-cells:before{left:15px;right:15px}
+    .weui-cells:after,.weui-cell:before{height:0;border:0;}
+    .weui-cell .weui-cell__bd{text-align:right;margin-left:10px}
+    .weui-icon-success-circle{color:#F65452}
+  </style>
+</head>
+<body class="bg-gray">
+	<div class="margin bg-white radius shadow">
+    <div class="padding center">
+      <div class="t_address">超时支付</div>
+      <div class="text-red text-xl">3元</div>
+    </div>
+    <div class="weui-cells">
+      <div class="weui-cell">
+        <div class="weui-cell__hd">寄存柜子：</div>
+        <div class="weui-cell__bd">A-03号</div>
+      </div>
+      <div class="weui-cell">
+        <div class="weui-cell__hd">开始时间：</div>
+        <div class="weui-cell__bd">2020-05-20 13:00</div>
+      </div>
+      <div class="weui-cell">
+        <div class="weui-cell__hd">购买时长：</div>
+        <div class="weui-cell__bd">1小时</div>
+      </div>
+      <div class="weui-cell">
+        <div class="weui-cell__hd">超出时长：</div>
+        <div class="weui-cell__bd">30分钟</div>
+      </div>
+      <div class="weui-cell">
+        <div class="weui-cell__hd">超出金额：</div>
+        <div class="weui-cell__bd">3元</div>
+      </div>
+    </div>
+  </div>
+  <div class="padding btnitem"><button class="weui-btn">确认支付</button></div>
+
+  <!-- <div class="foot">
+    <div class="flex align-center text-df text-gray" id='show-confirm'>
+      遇到问题？点击这里
+    </div>
+  </div> -->
+
+<script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+<script src="libs/fastclick.js"></script>
+<script>
+  $(function() {
+    FastClick.attach(document.body);
+  });
+
+  $(document).on("click", "#show-confirm", function() {
+        $.confirm("55556666", "联系工作人员", function() {
+          location.href = "tel:55556666";
+        }, function() {
+          //取消操作
+        });
+  });
+
+</script>
+<script src="libs/jquery-weui.min.js"></script>
+</body>
+</html>

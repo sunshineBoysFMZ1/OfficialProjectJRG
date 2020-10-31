@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>余额记录</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cell:before {
+      left: 0
+    }
+
+    .text-g {
+      color: #00FF66;
+    }
+
+    .text-b {
+      color: #0099FF;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-loading='loading' v-cloak element-loading-text="数据加载...">
+    <div class="margin bg-white radius shadow">
+      <div class="weui-cell" v-for='(item,index) of list' :key='index'>
+        <!--  {{item.type==1?'预交金额':item.type==2?'追加金额':item.type==3?'退还金额':'使用金额'}} -->
+        <div class="weui-cell__bd">
+          <p class="text-lg "
+            :class="{'text-red':item.type==4 || item.type == 5,'text-g':item.type==3,'text-b':item.type==1 || item.type==2}">
+            {{item.money}}元<br />
+            <span class="text-gray" v-if='item.memo' style="font-size:12px;">{{item.memo}}</span>
+            <p class="text-gray" v-if='item.memo' style="font-size:12px;">(剩余余额:{{item.after}})</p>
+          </p>
+        </div>
+        <div class="weui-cell__ft">
+          <p class="text-sm">{{item.created_time}}</p>
+        </div>
+      </div>
+    </div>
+    <!-- 无列表 -->
+    <div class="margin" :style="{display:list.length?'none':'block'}">
+      <div class="emptybox padding text-center">
+        <img src="images/empty.png">
+        <p>暂无记录</p>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            loading: true,
+            list: [],
+            page:1
+          }
+        },
+        created() {
+          let that = this;
+          that.mlists();
+        },
+        mounted() {
+          window.addEventListener('scroll', this.scrollToTop)
+        },
+        methods: {
+          mlists() {
+            let that = this,
+              url = '/api.php?s=/UserMoneyLog/lists',
+              data = {
+                page: 1
+              };
+            requestGet(url, data).then((res) => {
+              that.loading = false;
+              that.list = res.data.data;
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          scrollToTop() {
+            var that = this,
+              scrollTop = document.documentElement.scrollTop || document.body.scrollTop,
+              windowHeight = document.documentElement.clientHeight || document.body.clientHeight,
+              scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+            if (scrollTop + windowHeight == scrollHeight) {
+              let that = this,
+                p = that.page < 2 ? 2 : that.page,
+                url = '/api.php?s=/UserMoneyLog/lists',
+                data = {
+                  page: p
+                };
+              requestGet(url, data).then((res) => {
+                if (res.data.data.length) {
+                  that.list = that.list.concat(res.data.data);
+                  p++;
+                  that.page = p;
+                }
+              }).catch((err) => {
+                console.log(err)
+              })
+            } else {
+              // that.loading = true;
+            }
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

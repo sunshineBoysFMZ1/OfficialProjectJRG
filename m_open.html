@@ -1,0 +1,357 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8">
+	<title>协助开门</title>
+	<meta name="viewport"
+		content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta name="keywords" content="">
+	<meta name="description" content="">
+	<link rel="stylesheet" href="libs/weui.min.css">
+	<link rel="stylesheet" href="libs/jquery-weui.min.css">
+	<link rel="stylesheet" href="libs/index.css">
+	<link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+	<style>
+		.topbar .weui-cell__bd img {
+			width: 12px
+		}
+
+		.topbar .weui-cell__bd .weui-select {
+			padding-left: 0
+		}
+
+		.topbar .weui-cell__ft img {
+			width: 24px;
+			height: 24px;
+			display: block;
+			margin-right: 5px
+		}
+
+		.weui-cell {
+			position: relative;
+		}
+
+		.haveing {
+			background-color: #00CC99 !important;
+		}
+
+		.haveing div {
+			color: #fff;
+		}
+
+		.el-message-box {
+			width: 360px;
+		}
+	</style>
+</head>
+
+<body class="bg-white">
+	<div id="app" v-cloak v-loading='loading' element-loading-text="获取场所信息">
+		<div class="bg-white">
+			<div class="weui-cell weui-cell_select weui-cell_select-after">
+				<div class="weui-cell__hd">选择场所： </div>
+				<div class="weui-cell__bd">
+					<select class="weui-select" name="select2" v-model="ProductActive" @change="changeProduct($event)">
+						<option v-for='(item,index) in siteList' :key='index' :value="index">
+							{{item.name}}</option>
+					</select>
+				</div>
+			</div>
+		</div>
+		<div class="padding bg-gray">请选择您要打开的柜门号：</div>
+		<div class="weui-tab" v-if='deviceList != ""'>
+			<div class="weui-navbar">
+				<a class="weui-navbar__item" :class="{'weui-bar__item--on':ii == index}"
+					v-for='(item,index) of deviceName' :key='index' @click='selectSite(index)'>{{item}}</a>
+			</div>
+			<!-- checked  full-->
+			<div class="weui-tab__bd">
+				<div class="weui-tab__bd-item weui-tab__bd-item--active">
+					<div class="boxlist">
+						<div class="boxitem"
+						
+							:class="{'haveing':item.status == 1,'full':deviceList[ii].serve_status == 0,'checked':index == i }"
+							v-for='(item,index) in deviceList[ii].deviceSub'
+							@click='operation(index,item.device_id,item.id);'>
+							<div class="size">{{item.norm_str}}</div>
+							<div class="boxnum center">{{deviceName[ii]}}-{{item.name}}号</div>
+						</div>
+					</div>
+
+					<div class="fixed-h"></div>
+					<div class="btnbottom" @click='openDoor(1);'>
+						<button class="weui-btn">确定开门</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="padding-xl" v-if='length == 0'>
+			<div class="emptybox padding-lg text-center">
+				<img src="images/empty.png">
+				<div class="text-ml">没有可以选择的柜门</div>
+			</div>
+		</div>
+		<!-- <el-switch style="display: block" v-model="value" active-color="#13ce66" inactive-color="#ff4949"
+			active-text="全选开门" @change='autoChecked()' v-if='deviceList != ""'>
+		</el-switch> -->
+		<el-dialog title="用户信息" :visible.sync="centerDialogVisible" width="90%" center>
+			<div>用户名称:{{user.username}}</div>
+			<div>用户手机:{{user.mobile}}</div>
+			<span slot="footer" class="dialog-footer">
+				<el-button @click="centerDialogVisible = false">取 消</el-button>
+				<el-button type="primary" @click="openDoor(2);">开门</el-button>
+			</span>
+		</el-dialog>
+	</div>
+
+	<script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+	<script src="libs/fastclick.js"></script>
+	<script>
+		$(function () {
+			FastClick.attach(document.body);
+		});
+	</script>
+	<script src="libs/jquery-weui.min.js"></script>
+	<script src="libs/request.js"></script>
+	<script src="libs/vue.min.js"></script>
+	<script src="libs/element/index.js"></script>
+	<script>
+		$(function () {
+			new Vue({
+				el: "#app",
+				data() {
+					return {
+						/**
+						 * @param {object} g_id 多选柜子id(注释,现在是单选) , user 正在使用的柜子用户信息 , siteList 场所列表 , deviceName 场所下所有设备 ,  deviceList 设备下所有的柜门;
+						 * @param {number} ii 选择的场所设备 , i 选择设备下柜门的位置 , type 区分 直接开用户的门,和开未使用的门;
+						 * @param {boolean} value 多选条件 , centerDialogVisible 选择正在使用柜子的弹窗
+						 */
+						g_id: [],
+						user: {},
+						siteList: [],
+						deviceList: [],
+						deviceName: [],
+						ii: 0,
+						i: -1,
+						type: 0,
+						length: 0,
+						site_id: 0, //场所id
+						device_id: 0, //设备id
+						device_sub_id: 0, //柜子id
+						ProductActive: 0,
+						value: false,
+						loading: true,
+						centerDialogVisible: false,
+					}
+				},
+				created() {
+					let that = this;
+					that.action_site_list();
+				},
+				methods: {
+					/**
+					 * @method selectSite(); 点击事件 选择的场所;
+					 * @param {number} ii == index 选择的场所设备 , length 判断当前场所设备下有没有柜子,没有显示无的图片,that.device_sub_id 切换 柜子id == 0 , i == -1  初始化柜子选择 ;
+					 */
+					selectSite(index) {
+						let that = this;
+						that.i = -1;
+						that.ii = index;
+						that.device_sub_id = 0;
+						that.length = that.deviceList[index].deviceSub.length;
+					},
+					/**
+					 * @method action_site_list() 获取可操作场所;
+					 * @param {string} url 请求的接口;
+					 * @param {object} data {type:当前身份的type};
+					 * @callback then()=> @param {object} res =>@method action_device_list() 指定场所下的设备列表,默认请求第一个,that.siteList 可操作场所列表,that.site_id 默认场所id;
+					 */
+					action_site_list() {
+						let that = this,
+							url = '/api.php?s=/site/action_site_list',
+							data = {
+								type: JSON.parse(sessionStorage.getItem('status')).type
+							};
+						requestGet(url, data).then((res) => {
+							that.action_device_list(res.data[0].id);
+							that.siteList = res.data;
+							that.site_id = res.data[0].id;
+						})
+					},
+					/**
+					 * @method changeProduct() 选择场所;
+					 * @param {number} ProductActive 选中返回的value值; site_id = 选中的场所id;
+					 * @callback then()=> @method action_device_list() 获取选择id 请求场所下的设备;
+					 * 
+					*/
+					changeProduct(event) {
+						let that = this;
+						that.loading = true;
+						that.ProductActive = event.target.value;
+						that.site_id = that.siteList[that.ProductActive].id;
+						that.action_device_list(that.siteList[that.ProductActive].id);
+					},
+					/**
+					 * @method action_device_list();指定开门设备列表;
+					 * @param {string} url 请求接口;
+					 * @param {object} data {site_id:请求场所id,type:请求身份的type};
+					 * @callback then()=> @param {onject} res=> @param {object} deviceName 用来保存场所下设备名称,deviceList 保存设备下所有的柜门信息;
+					*/
+					action_device_list(site_id) {
+						let that = this,
+							url = '/api.php?s=/site/action_device_list',
+							data = {
+								site_id,
+								type: JSON.parse(sessionStorage.getItem('status')).type
+							};
+						requestGet(url, data).then((res) => {
+							let that = this,
+								deviceName = [];
+							that.length = res.data.device.length;
+							if (res.data.device) {
+								that.deviceList = res.data.device;
+								for (let item of res.data.device) {
+									deviceName.push(item.name);
+								};
+								that.deviceName = deviceName;
+							}
+							that.loading = false;
+						})
+					},
+					/**
+					 * @method operation() 操作开门;
+					 * @param {*} index 柜子在位置deviceSub的位置, device_id 设备id,id 柜子id(开门的信息);
+					 * @method if 当前选中的柜子是 1 弹出用户信息,在授权开门 else if == 0 柜子失效 else 正常开启柜门 ;
+					*/
+					operation(index, device_id, id) {
+						var that = this,
+							data = that.deviceList[that.ii].deviceSub;
+						that.device_id = device_id;
+						that.device_sub_id = id;
+
+						if (data[index].status == 1) return that.centerDialogVisible = true, that.user = data[
+							index].user ? data[index].user : {
+							mobile: '没有记录',
+							username: '没有记录'
+						};
+						if (data[index].serve_status == 0) return that.$notify({
+							title: '警告',
+							message: '当前柜子已经失效',
+							type: 'warning'
+						});
+
+						// this.$set(data, index, {
+						// 	device_id: data[index].device_id,
+						// 	id: data[index].id,
+						// 	locking_id: data[index].locking_id,
+						// 	name: data[index].name,
+						// 	norm_str: data[index].norm_str,
+						// 	status: data[index].status,
+						// 	user_id: data[index].user_id,
+						// 	checked: data[index].checked = !data[index].checked
+						// });
+						that.i = index;
+						that.selectId();
+					},
+					// 是否全选 (现在是单选)
+					autoChecked() {
+						let that = this;
+						for (let item of that.deviceList[that.ii].deviceSub) {
+							if (item.status != 1 && that.deviceList[that.ii] != 0)
+								item.checked = that.value;
+						};
+						that.selectId();
+					},
+					// 选中的柜门id
+					selectId() {
+						let that = this,
+							g_id = [],
+							i = 0,
+							length = 0;
+						for (let item of that.deviceList[that.ii].deviceSub) {
+							if (item.checked) {
+								g_id.push(item.id);
+								i++;
+							};
+							if (item.status != 1) {
+								length++;
+							};
+						};
+						// 查找 只算正常柜门(使用中不在内);
+						if (i == length) {
+							that.value = true
+						} else {
+							that.value = false
+						}
+						that.g_id = g_id
+					},
+					/**
+					 * @method  openDoor() 指定开门 提示操作 element 输入框弹窗;
+					 * @param {string,numner} value 开门着输入的备注信息;
+					 * @callback true => @method placeDoor()请求开启柜门 false => 取消
+					*/
+					openDoor(type) {
+						let that = this;
+						that.type = type;
+						that.$prompt('请填写开门备注信息', '协助开门', {
+							confirmButtonText: '确定',
+							cancelButtonText: '取消',
+						}).then(({
+							value
+						}) => {
+							if (value == null || value == undefined) return that.$message({
+								type: 'info',
+								message: '请输入开门备注'
+							});
+							that.placeDoor(value);
+						}).catch(() => {
+							that.$message({
+								type: 'info',
+								message: '取消开门'
+							});
+						});
+					},
+					/**
+					 * @method placeDoor() 请求协助开门;
+					 * @param {*} value 备注;
+					 * @param {string} 请求接口;
+					 * @param {object} data if type == 1 ? 没有人使用的柜子不用传用户id else 需要传;
+					 * @callback then()=> 柜门开启 catch=>err 失败; 
+					*/
+					placeDoor(memo) {
+						let that = this,
+							url = '/api.php?s=/UserStockpile/open',
+							data = that.type == 1 ? {
+								site_id: that.site_id,
+								device_id: that.device_id,
+								device_sub_id: that.device_sub_id,
+								memo
+							} : {
+								user_id: that.user.id,
+								site_id: that.site_id,
+								device_id: that.device_id,
+								device_sub_id: that.device_sub_id,
+								memo
+							};
+						requestGet(url, data).then((res) => {
+							that.$message({
+								message: res.msg,
+								type: 'success'
+							});
+							that.centerDialogVisible = false;
+						}).catch((err) => {
+							that.$message({
+								message: err.msg,
+								type: 'warning'
+							});
+						})
+					},
+				}
+			})
+		})
+	</script>
+</body>
+
+</html>

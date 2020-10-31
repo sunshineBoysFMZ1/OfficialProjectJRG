@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>个人中心</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-grids:before,
+    .weui-grids:after {
+      height: 0;
+      border: 0;
+      width: 0
+    }
+
+    .weui-grid:nth-child(3n):before {
+      border: 0;
+      width: 0;
+    }
+
+    .data .item {
+      border-color: #ececec;
+    }
+
+    .weui-grid {
+      padding: 15px 10px;
+    }
+
+    .el-drawer {
+      width: 40% !important;
+    }
+
+    .statusing {
+      margin-left: 10px;
+      background: #F65452;
+      /* margin-right: -20px; */
+      margin-bottom: 10px;
+      color: #fff;
+      border-radius: 20px 0 0 20px;
+      /* padding: 7px 16px; */
+      /* padding: 10px; */
+      line-height: 1;
+      text-align: center;
+      padding: 15px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-loading="loading" style="width: 100%" element-loading-text="获取信息..." v-cloak>
+    <div class="userinfo inuser">
+      <div class="weui-cell">
+        <div class="weui-cell__hd"><img :src="userData.avatar"></div>
+        <div class="weui-cell__bd">
+          <p>{{userData.username}}</p>
+          <p class="text-df">ID：{{userData.id}}</p>
+        </div>
+        <div class="weui-cell__ft status" @click="drawer = true" type="primary">身份：{{name}}</div>
+      </div>
+    </div>
+    <div class="margin-sm income">
+      <div class="bg-white radius shadow">
+        <div class="text-center padding">
+          <div class="text-df">昨日收益（元）</div>
+          <div class="text-sml text-red">{{syData.yesterday}}</div>
+        </div>
+        <div class="data flex">
+          <div class="item flex-sub text-center">
+            <div class="text-sm text-gray">今日收益（元）</div>
+            <div class="text-lg text-black text-bold">{{syData.today}}</div>
+          </div>
+          <div class="item flex-sub text-center">
+            <div class="text-sm text-gray">本月收益（元）</div>
+            <div class="text-lg text-black text-bold">{{syData.month}}</div>
+          </div>
+          <div class="item flex-sub text-center">
+            <div class="text-sm text-gray">上月收益（元）</div>
+            <div class="text-lg text-black text-bold">{{syData.on_month}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="margin-sm bg-white radius shadow">
+      <div class="weui-grids">
+        <a href="m_status.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m9.png" alt=""></div>
+          <p class="weui-grid__label">设备状态</p>
+        </a>
+        <a href="m_close.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m15.png" alt=""></div>
+          <p class="weui-grid__label">协助关门</p>
+        </a>
+        <a href="m_open.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m14.png" alt=""></div>
+          <p class="weui-grid__label">协助开门</p>
+        </a>
+        <a href="abnormal.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m10.png" alt=""></div>
+          <p class="weui-grid__label">超时订单</p>
+        </a>
+        <a href="openlist.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m13.png" alt=""></div>
+          <p class="weui-grid__label">开门记录</p>
+        </a>
+        <a href="m_collect.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m2.png" alt=""></div>
+          <p class="weui-grid__label">财务中心</p>
+        </a>
+
+      </div>
+    </div>
+    <div class="margin-sm bg-white radius shadow">
+      <div class="weui-grids">
+        <a href="c_personal.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m11.png" alt=""></div>
+          <p class="weui-grid__label">个人信息</p>
+        </a>
+        <a href="list.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m1.png" alt=""></div>
+          <p class="weui-grid__label">我的订单</p>
+        </a>
+        <a href="tuikuan.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m2.png" alt=""></div>
+          <p class="weui-grid__label">余额退款</p>
+        </a>
+        <a href="help.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m3.png" alt=""></div>
+          <p class="weui-grid__label">使用帮助</p>
+        </a>
+        <a href="about.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/m4.png" alt=""></div>
+          <p class="weui-grid__label">关于我们</p>
+        </a>
+        <a href="xy.html" class="weui-grid js_grid">
+          <div class="weui-grid__icon"><img src="images/qd.png" alt=""></div>
+          <p class="weui-grid__label">用户协议</p>
+        </a>
+      </div>
+    </div>
+
+
+    <div class="pagebox none">
+      <div class="weui-cells bg-white radius shadow">
+        <a class="weui-cell weui-cell_access" href="personal.html">
+          <div class="weui-cell__hd"><img src="images/m11.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>个人信息</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="list.html">
+          <div class="weui-cell__hd"><img src="images/m1.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>我的订单</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="tuikuan.html">
+          <div class="weui-cell__hd"><img src="images/m2.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>余额退款</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="help.html">
+          <div class="weui-cell__hd"><img src="images/m3.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>使用帮助</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="about.html">
+          <div class="weui-cell__hd"><img src="images/m4.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>关于我们</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+      </div>
+    </div>
+    <!-- 经理 -->
+    <div class="pagebox none">
+      <div class="weui-cells bg-white radius shadow">
+        <a class="weui-cell weui-cell_access" href="c_order.html">
+          <div class="weui-cell__hd"><img src="images/m1.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>订单情况</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="c_collect.html">
+          <div class="weui-cell__hd"><img src="images/m5.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>数据汇总</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="m_place.html">
+          <div class="weui-cell__hd"><img src="images/m2.png" alt=""></div>
+          <div class="weui-cell__bd">
+            <p>申请结佣</p>
+          </div>
+          <span class="weui-cell__ft"></span>
+        </a>
+      </div>
+    </div>
+    <el-drawer title="切换身份" :visible.sync="drawer" :with-header="false">
+      <div class="weui-cell__ft statusing" v-for='(item,index) in statusList' :key='index'
+        @click='selectUser(item.type,index)'>
+        身份：{{item.str}}</div>
+    </el-drawer>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script src="libs/identity.js"></script>
+</body>
+
+</html>

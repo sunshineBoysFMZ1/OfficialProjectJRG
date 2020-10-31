@@ -1,0 +1,270 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>协助关门</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cells {
+      margin-top: 0;
+      padding: 15px 0;
+      font-size: 15px
+    }
+
+    .weui-cell {
+      padding: 0 15px;
+      margin-bottom: 10px;
+      align-items: flex-start
+    }
+
+    .weui-cell:before,
+    .weui-grids:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cells .weui-cell:last-child {
+      margin-bottom: 0
+    }
+
+    .weui-grid {
+      padding: 6px 0;
+    }
+
+    /*.weui-btn{background:none;border:0;color:#F65452}*/
+    .weui-grid:first-child .weui-btn {
+      color: #333
+    }
+
+    .btnitem .weui-btn {
+      height: 50px;
+      line-height: 20px
+    }
+
+    .btnitem .weui-btn p {
+      font-size: 12px;
+    }
+
+    .weui-grids:after,
+    .weui-grid:last-child:before {
+      border: 0;
+      width: 0
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading' :element-loading-text="text">
+    <div class="padding-sm" v-for='(item,index) in listData' :key='index'>
+      <div class="listbox bg-white radius shadow">
+        <div class="redlight padding">该订单已结束，柜门未关闭，请协助关门</div>
+        <div class="weui-cells">
+          <div class="weui-cell">
+            <div class="weui-cell__hd">使用用户：</div>
+            <div class="weui-cell__bd">{{item.user_name}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">寄存门店：</div>
+            <div class="weui-cell__bd">{{item.site_name}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">寄存柜子：</div>
+            <div class="weui-cell__bd">{{item.device_name}}-{{item.device_sub_name}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">创建订单：</div>
+            <div class="weui-cell__bd">{{item.created_time}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">结束寄存：</div>
+            <div class="weui-cell__bd">{{item.end_time}}</div>
+          </div>
+          <div class="weui-cell">
+            <div class="weui-cell__hd">超时扣款：</div>
+            <div class="weui-cell__bd">{{item.is_arrears_ok ?'已扣款':'未扣款'}}</div>
+          </div>
+        </div>
+        <!-- <div class="padding" id='show-confirm'><button class="weui-btn">柜门已关闭</button></div> -->
+      </div>
+    </div>
+
+    <div class="padding-xl" v-if='listData.length == 0'>
+      <div class="emptybox padding-lg text-center">
+        <img src="images/empty.png">
+        <div class="text-ml">暂无记录</div>
+      </div>
+    </div>
+
+    <div id="full" class='weui-popup__container'>
+      <div class="weui-popup__overlay"></div>
+      <div class="weui-popup__modal" style="background:none;">
+        <div class="weui-popup__modals weui-dialog--visible">
+          <div class="weui-dialog weui-dialog--visible">
+            <div class="bg-white radius center">
+              <div class="padding">
+                <div class="weui-icon-warn weui-icon_msg-primary"></div>
+                <div class="margin-top">
+                  <p>关闭订单柜门不会打开</p>
+                  <p>请确保已取出物品</p>
+                </div>
+              </div>
+              <div class="weui-dialog__ft">
+                <a href="javascript:;" class="weui-dialog__btn default close-popup">取消</a>
+                <a href="takingopen.html" class="weui-dialog__btn primary">确定</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            /**
+             * @param {object} userInfo 用户信息，listData 未关门列表;
+             */
+            loading: true,
+            text: '加载...',
+            userInfo: {},
+            listData: []
+          }
+        },
+        created() {
+          let that = this;
+          /**
+           * @method WechatLogin() 登录授权获取code;
+           * @param {object} window 页面信息;
+           * @callback then()=> @param {*}  res code =>@method register()注册; catch => 错误处理;
+           */
+          if (sessionStorage.getItem('tokens')) {
+            that.userInfoi();
+          } else {
+            WechatLogin(window).then((res) => {
+              that.register(res);
+            }).catch((err) => {
+              console.log(err)
+            });
+          }
+
+        },
+        methods: {
+          /**
+           * @method assist_close_list() 获取未关门列表;
+           * @param {string} url 请求接口
+           * @param {object} data 请求参数 {type:当前用户身份type};
+           * @callback then()=> @param {object} res  => that.listData;catch=>err 错误处理;
+           */
+          assist_close_list() {
+            let that = this,
+              url = '/api.php?s=/UserStockpile/assist_close_list',
+              data = {
+                type: JSON.parse(sessionStorage.getItem('status')).type
+              };
+            requestGet(url, data).then((res) => {
+              that.loading = false;
+              that.listData = res.data;
+            }).catch((err) => {
+              that.text = err.msg
+              that.$message({
+                showClose: true,
+                message: err.msg,
+                type: 'error',
+                offset: 40
+              });
+            })
+          },
+          // 注册 ;
+          /**
+           * @method register() 注册;
+           * @param {*} code 授权登录 code;
+           * @param {string} url 请求接口;
+           * @param {object} data {code};
+           * @callback then()=> @param {object} res 缓存tokens => @method userInfoi() 获取用户信息 ; catch=>err 错误处理;
+           */
+          register(code) {
+            let that = this,
+              url = '/api.php?s=/user/login',
+              data = {
+                code
+              };
+            requestPost(url, data).then((res) => {
+              sessionStorage.setItem('tokens', res.data.tokens);
+              that.userInfoi();
+            }).catch((err) => {
+              that.userInfoi();
+            })
+          },
+          /**
+           * @method userInfoi() 获取用户信息;
+           * @parma {string} url 请求接口;
+           * @param {object} data {} 没有参数传空{};
+           * @callback then()=> @param {object} res 当前页面只有部分权限可以看; if identity != '' 取默认第一个身份 => @method assist_close_list() 场所未关闭订单 else 返回相对页面; catch => err 错误处理;
+           */
+          userInfoi() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.userData = res.data;
+              let data = res.data;
+              // 判断用户是否有身份 有就缓存身份列表的第一个相关信息
+              if (data.identity.length) {
+                var type = data.identity[0].type;
+                sessionStorage.setItem('level', type == 'manager' ? 1 : type == 'spread' ? 2 : type ==
+                  'site_manager' ? 3 : type == 'action' ? 4 : type == 'admin' ? 5 : 6);
+                sessionStorage.setItem('status', JSON.stringify(data.identity[0]));
+                // 调用信息
+                that.assist_close_list();
+              } else {
+                // 默认6普通用户 与当前身份不符合
+                sessionStorage.setItem('level', 6);
+                that.loading = true;
+                that.$message({
+                  message: '当前场所身份不符合',
+                  type: 'warning'
+                });
+                setTimeout(() => {
+                  window.location.href = 'my.html';
+                }, 1000)
+              }
+            }).catch((err) => {
+              that.loading = true;
+              that.text = err.msg;
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

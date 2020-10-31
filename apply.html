@@ -1,0 +1,300 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>申请结佣</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-navbar+.weui-tab__bd {
+      padding-top: 72px
+    }
+
+    .weui-cells {
+      margin-top: 0
+    }
+
+    .weui-cells:after,
+    .weui-cells:before {
+      height: 0;
+      border: 0;
+    }
+
+    .weui-cell:before {
+      left: 0
+    }
+
+    .weui-cell .weui-cell__hd {
+      font-size: 15px;
+      color: #666
+    }
+
+    .el-message-box {
+      width: 320px;
+    }
+
+    .p20 {
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading'>
+    <!-- <div class="p-choose bg-white radius shadow" v-if='userInfo.type =="manager" || userInfo.type =="site_manager" '>
+      <div class="weui-cell weui-cell_select weui-cell_select-after">
+        <div class="weui-cell__hd">
+          <label for="" class="weui-label">选择场所：</label>
+        </div>
+        <div class="weui-cell__bd">
+          <select class="weui-select" name="select2" v-module='value' @change='changeValue'>
+            <option :value="index" v-for='(item,index) in siteList' :key='index'>{{item.name}}</option>
+          </select>
+        </div>
+      </div>
+    </div> -->
+    <div class="bg-red radius shadow padding-lg margin-sm" style="margin-top: 5px;">
+      <div class="text-center padding-xl">
+        <div class="text-df">可提现金额（元）</div>
+        <div class="text-sml">{{money}}</div>
+      </div>
+    </div>
+    <div class="margin-sm">
+      <div class="padding-lg bg-white radius shadow">
+        <div class="waytitle">请选择提现方式</div>
+        <div class="weui-tab">
+          <div class="weui-navbar applyways solid-bottom">
+            <a class="apply weui-navbar__item weui-bar__item--on" href="#tab1" @click='select(1)'>
+              <img src="images/tx_icon1.png">
+              <p>微信</p><span><img src="images/txon.png"></span>
+            </a>
+            <a class="apply weui-navbar__item" href="#tab2" @click='select(3)'>
+              <image src="images/tx_icon3.png">
+                <p>对公户</p>
+                <span><img src="images/txon.png"></span>
+            </a>
+          </div>
+          <!-- 提现 -->
+          <div class="weui-tab__bd waysbox">
+            <div class="style-default weui-tab__bd-item weui-tab__bd-item--active" id="tab1">
+              <div class="btn flex flex-direction margin-top-xl" @click='submit_withdraw()'>
+                <button class="weui-btn lg bg-red">申请结佣</button>
+              </div>
+            </div>
+            <div class="style-default weui-tab__bd-item" id="tab2">
+              <div class="wayitem">
+                <div class="text"><span class="must">*</span><span>开户行：</span></div>
+                <div class="account">
+                  <input placeholder="请输入正确的银行名称" class="account_bank" :value='udata.account_bank'>
+                  </input>
+                </div>
+              </div>
+              <div class="wayitem">
+                <div class="text"><span class="must">*</span><span>开户号：</span></div>
+                <div class="account">
+                  <input placeholder="请输入正确的银行卡账号" class="bank_crad_number" :value='udata.bank_crad_number'>
+                  </input>
+                </div>
+              </div>
+              <div class="wayitem">
+                <div class="text"><span class="must">*</span><span>账户名：</span></div>
+                <div class="account">
+                  <input placeholder="请输入账户名称" class="bank_username" :value='udata.bank_username'>
+                  </input>
+                </div>
+              </div>
+              <div class="btn flex flex-direction margin-top-xl" @click='submit_withdraw()'>
+                <button class="weui-btn lg bg-red">申请结佣</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="text-sm text-gray p20">
+        <p> 1：提现财务服务费3%，微信提现手续费0.6%。</p>
+        <p> 2：本月提现为上月及之前的</p>
+        <p> 3：提交后等待管理员确定、到账后会收到消息。</p>
+        <p> 4：建议每月申请提现一次，最少每六个月需要提现一次，六月之前的金额无法入账。</p>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          /**
+           * @param {number} level 当前身份,value 选择场所,money 可提现金额,type 提现方式,site_id 场所id;
+           * @param {object} udata 缓存个人信息,userInfo 请求个人信息,siteList 场所列表;
+           * @param {boolean} loading 数据加载; 
+           */
+          return {
+            level: 0,
+            value: 0,
+            money: 0,
+            type: 1,
+            site_id: 0,
+            udata: {},
+            userInfo: {},
+            siteList: [],
+            loading: true,
+          }
+        },
+        created() {
+          let that = this;
+          that.level = sessionStorage.getItem('level');
+          that.userInfo = JSON.parse(sessionStorage.getItem('status'));
+          that.udata = JSON.parse(sessionStorage.getItem('about'));
+          that.action_site_list();
+        },
+        methods: {
+          // 选择提现方式
+          select(index) {
+            this.type = index
+          },
+          /**
+           * @method action_site_list() 获取可以用的场所;
+           * @param {string} url 请求接口;
+           * @param {object} data 没有参数{}/{type:@param {string} type 当前身份type};
+           * @callback then()=> @param {object} res => that.siteList 场所列表,that.site_id 第一个场所id, @method before_last_month_money(that.site_id) 获取数据场所第一个的金额  , catch=>err 错误处理;
+           */
+          action_site_list() {
+            let that = this,
+              url = '/api.php?s=/site/action_site_list',
+              data = {
+                type: JSON.parse(sessionStorage.getItem('status')).type
+              };
+            requestGet(url, data).then((res) => {
+              let that = this;
+              that.siteList = res.data;
+              that.site_id = res.data[0].id;
+              that.before_last_month_money(res.data[0].id)
+              that.loading = false;
+            }).catch((err) => {
+              that.$message({
+                message: '还没有绑定相关的场所',
+                type: 'warning'
+              });
+              setTimeout(() => {
+                window.history.back(-1)
+              }, 1000)
+            })
+          },
+          /**
+           * @method before_last_month_money() 可提现金额;
+           * @param {string} url 请求接口;
+           * @param {object} data 请求参数 没有传{}/{site_id:@param{*} site_id	场所ID,type:@param{*} type身份} / admin 不传 site_id;
+           * @callback then() => @param {object} res = > that.money 当前场所金额 , catch=>err 错误处理;
+           */
+          before_last_month_money(site_id) {
+            let that = this,
+              url = '/api.php?s=/UserCommission/before_last_month_money',
+              data = {
+                type: that.userInfo.type
+              };
+            // data = that.userInfo.type == 'admin' || that.userInfo.type == 'spread' ? {
+            //   type: that.userInfo.type
+            // } : {
+            //   site_id,
+            //   type: that.userInfo.type
+            // };
+            requestGet(url, data).then((res) => {
+              that.money = res.data.money;
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          /**
+           * @method changeValue() change 事件 选择场所id;
+           * @param {*} site_id 场所id;
+           * @method before_last_month_money() 调用获取选择的场所金额;
+           */
+          changeValue(e) {
+            this.site_id = this.siteList[e.target.value].id;
+            this.before_last_month_money(this.siteList[e.target.value].id)
+          },
+          /**
+           * @method submit_withdraw()提现;
+           * @param {string} url 请求接口;
+           * @param {object} data 请求传参,没有{}/ type == 1 ? 微信提现 {site_id:@param{*} site_id 场所id,money:@param{*} money 场所金额,type:提现方式,identity_type:提现身份} :{account_bank:银行,bank_crad_number:银行卡号,bank_username:开户人};
+           * @callback then()=>请求成功,catch => 错误处理;
+           */
+          submit_withdraw() {
+            let that = this;
+            that.$confirm('提现为上月佣金,提现后请等待审核', '提现佣金', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning',
+              callback: (res) => {
+                if (res == 'confirm') {
+                  that.apply();
+                } else {
+                  that.$message({
+                    type: 'info',
+                    message: '取消'
+                  });
+                }
+              }
+            })
+
+          },
+          apply() {
+            let that = this;
+            let url = '/api.php?s=/Withdraw/submit_withdraw',
+              data = that.type == 1 ? {
+                site_id: JSON.parse(sessionStorage.getItem('status')).type == 'manager' ? that.site_id : '',
+                money: that.money,
+                type: that.type,
+                identity_type: JSON.parse(sessionStorage.getItem('status')).type
+              } : {
+                site_id: JSON.parse(sessionStorage.getItem('status')).type == 'manager' ? that.site_id : '',
+                money: that.money,
+                type: that.type,
+                account_bank: $('.account_bank').val(),
+                bank_crad_number: $('.bank_crad_number').val(),
+                bank_username: $('.bank_username').val(),
+                identity_type: JSON.parse(sessionStorage.getItem('status')).type
+              };
+            requestPost(url, data).then((res) => {
+              that.$message({
+                message: res.msg,
+                type: 'success'
+              });
+              // window.history.go(-1);
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>个人信息</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-loading='loading' element-loading-text="获取用户信息..." v-cloak>
+    <div class="userinfo">
+      <div class="weui-cell">
+        <div class="weui-cell__hd"><img :src="userData.avatar"></div>
+        <div class="weui-cell__bd">
+          <p>{{userData.username}}</p>
+          <p class="text-df">ID：{{userData.id}}</p>
+        </div>
+        <!-- <div class="weui-cell__ft status">身份：总经理</div> -->
+      </div>
+    </div>
+    <div class="pagebox">
+      <div class="weui-cells bg-white radius shadow">
+        <a class="weui-cell weui-cell_access" href="reset_num.html">
+          <div class="weui-cell__bd">
+            <p>手机号</p>
+          </div>
+          <span class="weui-cell__ft text-black">{{userData.mobile}}</span>
+        </a>
+        <a class="weui-cell weui-cell_access" href="reset_code.html">
+          <div class="weui-cell__bd">
+            <p>取物码</p>
+          </div>
+          <span class="weui-cell__ft text-black">100791</span>
+        </a>
+
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            loading: true,
+            userData: {}
+          }
+        },
+        created() {
+          let that = this;
+          that.userInfo();
+        },
+        methods: {
+          userInfo() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            requestGet(url, data).then((res) => {
+              that.userData = res.data;
+              let data = res.data;
+              sessionStorage.setItem('level', data.manager_identify ? 1 : data.spread_identify ? 2 : data
+                .site_manager_identify ? 3 : data.action_identify ? 4 : 5);
+              that.loading = false;
+            })
+          },
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>

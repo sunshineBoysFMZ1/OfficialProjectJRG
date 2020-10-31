@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>BonBon寄存柜</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="libs/weui.min.css">
+    <link rel="stylesheet" href="libs/jquery-weui.min.css">
+    <link rel="stylesheet" href="libs/index.css">
+    <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+    <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+    <style>
+        .swiper-pagination-bullet-active {
+            background: #fff !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" v-loading="loading" style="width: 100%" v-cloak>
+        <swiper class="wrapper-swiper-container  banner container radius" :options="swiperOption">
+            <swiper-slide v-for='(item,i) in banner_Image' :key='i'>
+                <div class="topimg radius" @click='userAdd(item.info)'>
+                    <img :src="item.image" :alt='item.name'>
+                </div>
+            </swiper-slide>
+            <div class="swiper-pagination" slot="pagination" style="bottom:25px"></div>
+        </swiper>
+        <div class="center">{{name}}</div>
+        <div class="fixbottom btnbox">
+            <button class="weui-btn" @click='jssdkscan()'>扫一扫</button>
+        </div>
+
+    </div>
+    <script src="http://cunbaocdn.1565.com.cn/swiper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-awesome-swiper@3.1.3/dist/vue-awesome-swiper.min.js"></script>
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+    <script src='libs/request.js'></script>
+    <script src="libs/vue.min.js"></script>
+    <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+    <script>
+        $(function () {
+            Vue.use(window.VueAwesomeSwiper);
+            new Vue({
+                el: "#app",
+                data() {
+                    /**
+                     * @param {boolean} show 显示二维码; img(废弃);
+                     * @param {object} banner_Image 默认轮播图显示 ; swiperOption swiper 轮播图功能;
+                     */
+                    return {
+                        name: "扫描柜机上的二维码",
+                        src: '',
+                        loading: false,
+                        show: false,
+                        img: true,
+                        banner_Image: [{
+                            image: 'images/tu.jpg',
+                            info: false
+                        }],
+                        swiperOption: {
+                            slidesPerView: 1,
+                            loop: true,
+                            pagination: {
+                                el: '.swiper-pagination',
+                            },
+                        },
+                        useData: {}
+                    }
+                },
+                created() {
+                    let that = this;
+                    // 判断是否有tokens 没有申请授权;
+                    /**
+                     * @method WechatLogin() 登录授权注册;
+                     * @param {object} window 页面信息;
+                     * @callback then()=> @param {*} res (code) =>@method register() code注册; catch=>err 错误处理;
+                     */
+                    if (sessionStorage.getItem('tokens')) {
+                        that.userInfo();
+                        that.loading = false;
+                    } else {
+                        WechatLogin(window).then((res) => {
+                            that.register(res);
+                        }).catch((err) => {
+                            console.log(err)
+                        });
+                    }
+                    that.jssdk();
+                },
+                methods: {
+                    // 获取支付价钱
+                    face_user_fuse() {
+                        let useData = JSON.parse(sessionStorage.getItem('useData'))
+                        let that = this,
+                            url = '/api.php?s=/user/face_user_fuse',
+                            data = {
+                                face_user_id: useData.user_id
+                            };
+                        requestGet(url, data).then((res) => {
+                            that.banner();
+                        }).catch((err) => {
+                            console.log(err)
+                        })
+                    },
+                    // 轮播图
+                    banner() {
+                        let useData = JSON.parse(sessionStorage.getItem('useData'))
+                        let that = this,
+                            url = '/api.php?s=/order/created_order',
+                            data = {
+                                site_id: useData.site_id,
+                                device_id: useData.device_id,
+                                device_sub_id: useData.device_sub_id,
+                                charge_id: useData.charge_id
+                            };
+                        requestPost(url, data).then((res) => {
+                            if (res.data.appId) {
+                                that.paying(res.data);
+                            } else {
+                                that.$notify({
+                                    title: '支付成功',
+                                    message: '柜门支付成功',
+                                    offset: 55,
+                                    type: 'success'
+                                });
+                                that.loading = true;
+                                setTimeout(() => {
+                                    window.location.href = 'payopen.html?id=' + res.data.device_sub_id
+                                }, 800);
+                            }
+                        }).catch((err) => {
+                            that.$notify.info({
+                                title: '失败',
+                                message: err.msg,
+                                offset: 55,
+                                type: 'success'
+                            });
+                        })
+                    },
+                    // 点击轮播图跳转;
+                    userAdd(e) {
+                        if (e) {
+                            window.location.href = e;
+                        }
+                    },
+                    // 扫一扫;
+                    /**
+                     * @method jssdkscan(); 微信jssdk扫一扫;
+                     * @callback true => 跳转二维码返回路径页面;false=>扫码失败;
+                     */
+                    jssdkscan() {
+                        wx.scanQRCode({
+                            needResult: 1, // 默认为0，扫描结果由微信处理，1则直接返回扫描结果，
+                            scanType: ["qrCode"], // 可以指定扫二维码还是一维码，默认二者都有
+                            success: function (res) {
+                                // 扫码成功，跳转到二维码指定页面（res.resultStr为扫码返回的结果）
+                                location.href = res.resultStr;
+                            },
+                            error: function (res) {
+                                if (res.errMsg.indexOf('function_not_exist') > 0) {
+                                    alert('当前版本过低，请进行升级');
+                                }
+                            }
+                        });
+                    },
+                    // 注册
+                    /**
+                     * @method register(); 注册
+                     * @param {*} code 微信返回授权code;
+                     * @param {string} url 请求接口;
+                     * @param {object} data 请求参数 {code}
+                     * @callback then()=> @param {object} res , 缓存tokens => @method userInfo() 用户信息,banner()轮播图; catch=>err 错误处理;
+                     */
+                    register(code) {
+                        let useData = JSON.parse(sessionStorage.getItem('useData'))
+                        let that = this,
+                            url = '/api.php?s=/user/login',
+                            data = {
+                                code
+                            };
+                        requestPost(url, data).then((res) => {
+                            sessionStorage.setItem('tokens', res.data.tokens);
+                            that.userInfo();
+                        }).catch((err) => {
+                            that.userInfo();
+                        })
+                    },
+                    /**
+                     * @method userInfo() 用户信息;
+                     * @param {string} url 请求接口;
+                     * @param {object} data 请求参数 没有传{};
+                     * @callback then()=> @param {object} res if 关注公众号 正常使用 else 引导用户关注使用; catch=>err 错误处理;
+                     */
+                    userInfo() {
+                        let useData = JSON.parse(sessionStorage.getItem('useData'))
+                        let that = this,
+                            url = '/api.php?s=/user/info',
+                            data = {};
+                        requestGet(url, data).then((res) => {
+                            that.userData = res.data;
+                            let data = res.data;
+                            that.loading = false;
+                            if (useData.user_id) {
+                                this.face_user_fuse();
+                            } else {
+                                this.banner();
+                            }
+                        }).catch((err) => {
+                            that.loading = true;
+                            that.text = err.msg;
+                            that.$message({
+                                message: err.msg,
+                                type: 'warning'
+                            });
+                        })
+                    },
+                    // jssdk
+                    /**
+                     * @method jssdk() 调用微信jssdk;
+                     * @param {string} url 请求接口;
+                     * @param {object} data {url:当前页面};
+                     * @callback then()=> 注册挂载使用 详细 @url https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/JS-SDK.html#1;
+                     */
+                    jssdk() {
+                        let that = this,
+                            url = '/api.php?s=/OfficialAccount/jssdk',
+                            data = {
+                                url: window.location.href
+                            };
+                        requestPost(url, data).then((res) => {
+                            var data = res.data;
+                            wx.config({
+                                debug: false, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+                                appId: data.appId, // 必填，公众号的唯一标识
+                                timestamp: data.timestamp, // 必填，生成签名的时间戳
+                                nonceStr: data.nonceStr, // 必填，生成签名的随机串
+                                signature: data.signature, // 必填，签名，见附录1
+                                jsApiList: ['scanQRCode'] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
+                            });
+                            wx.ready(function () {
+                                // 在这里调用 API
+                                wx.checkJsApi({
+                                    jsApiList: ['scanQRCode'],
+                                    success: (res) => {
+                                        console.log(res)
+                                    }
+                                })
+                            });
+                        })
+                    },
+                    // 解析url 参数
+                    pathUrl(name) {
+                        let data = window.location.search.substring(1);
+                        for (let item of data.split('&')) {
+                            if (name == item.split('=')[0]) {
+                                return item.split('=')[1]
+                            }
+                        };
+                    },
+                    paying: function (wxjson) {
+                        console.log(wxjson)
+                        var that = this;
+                        let useData = JSON.parse(sessionStorage.getItem('useData'))
+
+                        function onBridgeReady() {
+                            WeixinJSBridge.invoke(
+                                'getBrandWCPayRequest', {
+                                    "appId": wxjson.appId, //公众号名称，由商户传入
+                                    "timeStamp": wxjson.timeStamp, //时间戳，自1970年以来的秒数
+                                    "nonceStr": wxjson.nonceStr, //随机串
+                                    "package": wxjson.package,
+                                    "signType": wxjson.signType, //微信签名方式：
+                                    "paySign": wxjson.paySign //微信签名
+                                },
+                                function (res) {
+                                    if (res.err_msg == "get_brand_wcpay_request:ok") {
+                                        that.$notify({
+                                            title: '支付成功',
+                                            message: '柜门支付成功',
+                                            offset: 55,
+                                            type: 'success'
+                                        });
+                                        that.loading = true;
+                                        setTimeout(() => {
+                                            window.location.href = 'payopen.html?id=' +
+                                                useData.device_sub_id
+                                        }, 1500);
+                                    } else {
+                                        that.$notify.info({
+                                            title: '支付失败',
+                                            message: '取消寄存',
+                                            offset: 55,
+                                            type: 'success'
+                                        });
+                                    }
+                                });
+                        }
+                        if (typeof WeixinJSBridge == "undefined") {
+                            if (document.addEventListener) {
+                                document.addEventListener('WeixinJSBridgeReady', onBridgeReady,
+                                    false);
+                            } else if (document.attachEvent) {
+                                document.attachEvent('WeixinJSBridgeReady', onBridgeReady);
+                                document.attachEvent('onWeixinJSBridgeReady', onBridgeReady);
+                            }
+                        } else {
+                            onBridgeReady();
+                        }
+                    },
+                },
+            })
+        })
+    </script>
+</body>
+
+</html>

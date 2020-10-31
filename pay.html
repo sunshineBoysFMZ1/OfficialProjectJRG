@@ -1,0 +1,317 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>BonBon寄存柜</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <style>
+    .weui-cells_radio .weui-check:checked+.weui-check__label {
+      border: solid 1px #4585F3;
+    }
+
+    .el-message-box {
+      width: 340px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-cloak v-loading='loading' element-loading-text="请求信息..">
+    <div class="weui-cell topbar bg-white" v-if='cabinetList.device_info'>
+      <div class="weui-cell__bd oneline">{{cabinetList.device_info.site_name}}-{{cabinetList.device_info.device_name}}
+      </div>
+      <div class="weui-cell__ft text-xs">营业时间：{{cabinetList.device_info.device_operating_date}}</div>
+    </div>
+    <div class="weui-cells__title">您选择柜门号为：</div>
+    <div class="choosenum bg-white radius center shadow">
+      <p>{{charge.device.name}}-{{charge.name}}<span>号</span></p>
+    </div>
+    <div class="weui-cells__title">请选择付费方式：</div>
+    <div class="margin-bottom">
+      <div class="weui-cells_radio payway">
+        <div class="way bg-white radius center" :class="{'checked':index==ii}" v-for='(item,index) in payway'
+          :key='index' @click='userSelect(index)'>
+          <div class="weui-cell__bd">
+            <p>{{item.charge_name}}</p>
+            <!-- <p class="text-xs margin-top">{{item.memo}}</p> -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content-padded open-popup" @click='get_pay_price()'><button class="weui-btn">立即存包</button></div>
+    <div class='weui-popup__container popup-bottom weui-popup__container--visible' v-loading='loading'
+      element-loading-text="支付提交" v-if='show' @click='close_popup()'>
+      <div class="weui-popup__overlay"></div>
+      <div class="weui-popup__modal">
+        <div class="toolbar">
+          <div class="toolbar-inner">
+            <a href="javascript:;" class="picker-button closes-popup" @click='close_popup()'>取消</a>
+            <h1 class="title"><i class="weui-icon-warn weui-icon_msg-primary"></i>找准柜门，请勿存错！</h1>
+          </div>
+        </div>
+        <div class="modal-content">
+          <div class="content-padded">
+            <div class="center">
+              <p class="choosenum">{{charge.device.name}}-{{charge.name}}<span>号</span></p>
+            </div>
+            <div class="weui-cell" v-if='pay_price.cash_pledge.name'>
+              <div class="weui-cell__bd">押金 : </div>
+              <div class="weui-cell__ft">{{pay_price.cash_pledge.name}}￥{{pay_price.cash_pledge.price}}</div>
+              <div class="weui-cell__ft" v-else>押金足够无需支付</div>
+            </div>
+            <div class="weui-cell" v-if='pay_price.price_info' v-for='(info,ii) in pay_price.price_info' :key='ii'>
+              <div class="weui-cell__bd">{{info.name}} : </div>
+              <div class="weui-cell__ft">{{info.price}}元</div>
+            </div>
+            <div class="weui-cell" v-if='payway[ii].memo'>
+              <div class="weui-cell__bd">备注 : </div>
+              <div class="weui-cell__ft">{{payway[ii].memo}}</div>
+            </div>
+            <div class="margin-top margin-bottom-sm">
+              <button class="weui-btn" @click='userPay();'
+                v-if='pay_price.total_price'>确认支付({{pay_price.total_price}})元</button>
+              <button class="weui-btn" @click='userPay();' v-else>立即开门</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/fastclick.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script>
+    $(function () {
+      FastClick.attach(document.body);
+      let isPageHide = false;
+      window.addEventListener('pageshow', function () {
+        if (isPageHide) {
+          window.location.reload();
+        }
+      });
+      window.addEventListener('pagehide', function () {
+        isPageHide = true;
+      });
+    });
+
+    $(document).on("open", ".weui-popup-modal", function () {
+      console.log("open popup");
+    }).on("close", ".weui-popup-modal", function () {
+      console.log("close popup");
+    });
+  </script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script type="text/javascript" src="https://res.wx.qq.com/open/js/jweixin-1.4.0.js"></script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            payway: [],
+            ii: 0,
+            loading: true,
+            charge_id: 0,
+            charge: {},
+            show: false,
+            pay_price: {},
+            cabinetList: {}
+          }
+        },
+        created() {
+          let that = this;
+          that.infoPay();
+          that.listsData();
+        },
+        destroyed() {
+          this.loading = false;
+        },
+        methods: {
+          // 获取支付方式
+          infoPay() {
+            let that = this,
+              url = '/api.php?s=/DeviceSub/info',
+              data = {
+                device_sub_id: that.pathUrl('id')
+              };
+            requestGet(url, data).then((res) => {
+              that.payway = res.data.charge;
+              that.charge_id = res.data.charge[0].id;
+              that.charge = res.data;
+              that.loading = false;
+            }).catch((err) => {
+              that.loading = true;
+              that.$message({
+                showClose: true,
+                message: err.msg,
+                type: 'error',
+                offset: 40
+              });
+              setTimeout(() => {
+                window.history.back(-1);
+              }, 1500);
+            })
+          },
+          // 获取支付的金额
+          get_pay_price() {
+            let that = this,
+              url = '/api.php?s=/order/get_pay_price',
+              data = {
+                site_id: that.charge.site_id,
+                device_sub_id: that.pathUrl('id'),
+                charge_id: that.charge_id
+              };
+            requestGet(url, data).then((res) => {
+              that.show = true;
+              that.pay_price = res.data;
+            }).catch((err) => {
+              that.$confirm(err.msg, '提示信息', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning',
+                center: true,
+                callback: (res) => {}
+              })
+            })
+          },
+          // 选取价钱
+          userSelect(index) {
+            let that = this;
+            that.ii = index;
+            that.charge_id = that.payway[index].id;
+          },
+          // 支付
+          userPay() {
+            let that = this,
+              url = '/api.php?s=/order/created_order',
+              data = {
+                site_id: that.charge.site_id,
+                device_sub_id: that.pathUrl('id'),
+                device_id: that.pathUrl('device_id'),
+                price: that.pay_price.total_price,
+                charge_id: that.charge_id
+              };
+            requestPost(url, data).then((res) => {
+              if (res.data.appId) {
+                that.paying(res.data);
+              } else {
+                that.$notify({
+                  title: '支付成功',
+                  message: '柜门支付成功',
+                  offset: 55,
+                  type: 'success'
+                });
+                that.loading = true;
+                setTimeout(() => {
+                  window.location.href = 'payopen.html?id=' + that.pathUrl('id')
+                }, 800);
+              }
+            }).catch((err) => {
+              that.$message({
+                showClose: true,
+                message: err.msg,
+                type: 'error',
+                offset: 40
+              });
+            })
+          },
+          // 柜子列表数据
+          listsData() {
+            let url = '/api.php?s=/DeviceSub/lists',
+              data = {
+                device_id: this.pathUrl('device_id')
+              },
+              that = this,
+              cabinet = that.cabinet;
+            requestGet(url, data).then((resp) => {
+              // 处理数据
+              that.cabinetList = resp.data;
+            }).catch((err) => {
+              that.loading = true;
+              that.$message({
+                showClose: true,
+                message: err.msg,
+                type: 'error',
+                offset: 40
+              });
+              setTimeout(() => {
+                window.location.href = 'index.html'
+              }, 1200);
+            })
+          },
+          // 解析url 参数
+          pathUrl(name) {
+            let data = window.location.search.substring(1);
+            for (let item of data.split('&')) {
+              if (name == item.split('=')[0]) {
+                return item.split('=')[1]
+              }
+            };
+          },
+          close_popup() {
+            let that = this;
+            that.show = false;
+          },
+          paying: function (wxjson) {
+            var that = this;
+
+            function onBridgeReady() {
+              WeixinJSBridge.invoke(
+                'getBrandWCPayRequest', {
+                  "appId": wxjson.appId, //公众号名称，由商户传入     
+                  "timeStamp": wxjson.timeStamp, //时间戳，自1970年以来的秒数     
+                  "nonceStr": wxjson.nonceStr, //随机串     
+                  "package": wxjson.package,
+                  "signType": wxjson.signType, //微信签名方式：     
+                  "paySign": wxjson.paySign //微信签名 
+                },
+                function (res) {
+                  if (res.err_msg == "get_brand_wcpay_request:ok") {
+                    that.$notify({
+                      title: '支付成功',
+                      message: '柜门支付成功',
+                      offset: 55,
+                      type: 'success'
+                    });
+                    that.loading = true;
+                    setTimeout(() => {
+                      window.location.href = 'payopen.html?id=' + that.pathUrl('id')
+                    }, 1500);
+                  } else {
+                    that.$notify.info({
+                      title: '支付失败',
+                      message: '取消寄存',
+                      offset: 55,
+                      type: 'success'
+                    });
+                  }
+                });
+            }
+            if (typeof WeixinJSBridge == "undefined") {
+              if (document.addEventListener) {
+                document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+              } else if (document.attachEvent) {
+                document.attachEvent('WeixinJSBridgeReady', onBridgeReady);
+                document.attachEvent('onWeixinJSBridgeReady', onBridgeReady);
+              }
+            } else {
+              onBridgeReady();
+            }
+          },
+        },
+      })
+    })
+  </script>
+</body>
+
+</html>

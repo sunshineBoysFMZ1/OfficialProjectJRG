@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>提现记录</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="libs/weui.min.css">
+    <link rel="stylesheet" href="libs/jquery-weui.min.css">
+    <link rel="stylesheet" href="libs/index.css">
+    <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+    <style>
+        .weui-cell:before {
+            left: 0
+        }
+
+        .text-g {
+            color: #00FF66;
+        }
+
+        .text-b {
+            color: #0099FF;
+        }
+
+        .items {
+            padding: 7px;
+            border: 1px solid #eee;
+            margin: 5% auto;
+            border-radius: 10px;
+        }
+
+        .items span {
+            color: #909399;
+        }
+
+        .el-dialog--center .el-dialog__body {
+            padding: 0;
+        }
+
+        .el-dialog__body {
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body class="bg-gray">
+    <div id="app" v-loading='loading' v-cloak element-loading-text="数据加载...">
+        <!-- <div class="p-choose bg-white radius shadow" v-if='type =="manager" || type =="site_manager" '>
+            <div class="weui-cell weui-cell_select weui-cell_select-after">
+                <div class="weui-cell__hd">
+                    <label for="" class="weui-label">选择场所：</label>
+                </div>
+                <div class="weui-cell__bd">
+                    <select class="weui-select" name="select2" v-module='value' @change='changeValue'>
+                        <option :value="index" v-for='(item,index) in siteList' :key='index'>{{item.name}}</option>
+                    </select>
+                </div>
+            </div>
+        </div> -->
+        <div class="margin bg-white radius shadow">
+            <div class="weui-cell" v-for='(item,index) of list' :key='index'>
+                <div class="weui-cell__bd" @click='operation(item)'>
+                    <p class="text-lg"
+                        :class="{'text-red':item.status== 4 || item.status == 1,'text-g':item.status==3,'text-b':item.status==2 || item.status==0}">
+                        {{item.status==4?'提现失败' : item.status == 1 ? '驳回' : item.status==2 ? '提现中' : item.status== 3 ? '提现成功' :'待审核'}}{{item.price}}元
+                    </p>
+                    <p class="text-lg text-gray" style="font-size:12px;">提现人{{item.user.username}}</p>
+                    <p class="text-lg text-gray" style="font-size:12px;" v-if='item.status == 1'>驳回原因:{{item.reject}}</p>
+                    <p class="text-lg text-gray" style="font-size:12px;" v-else-if='item.status == 4'>失败原因:{{item.error_code}}</p>
+                </div>
+                <div class="weui-cell__ft">
+                    <p class="text-sm">{{item.created_time}}</p>
+                </div>
+            </div>
+        </div>
+        <!-- 无列表 -->
+        <div class="margin" :style="{display:list.length?'none':'block'}">
+            <div class="emptybox padding text-center">
+                <img src="images/empty.png">
+                <p>暂无记录</p>
+            </div>
+        </div>
+        <!--  -->
+        <el-dialog title="佣金详情" :visible.sync="centerDialogVisible" width="90%" center>
+            <div class="margin-sm">
+                <div class="bg-red radius shadow">
+                    <div class="text-center padding-xl">
+                        <div class="text-df">{{detail.type_str}}</div>
+                        <div class="text-sml">{{detail.price}}</div>
+                    </div>
+                    <div class="data flex">
+                        <div class="item flex-sub text-center">
+                            <div class="text-sm text-gray">到账金额（元）</div>
+                            <div class="text-lg text-black">{{detail.amount}}</div>
+                        </div>
+                        <div class="item flex-sub text-center">
+                            <div class="text-sm text-gray">手续费用（元）</div>
+                            <div class="text-lg text-black">{{detail.fee}}</div>
+                        </div>
+                    </div>
+                </div>
+                <div v-for='(item,index) in detail.useCommission' class="items">
+                    <div><span>提现场所 : </span>{{item.site.name}}</div>
+                    <div><span>提现金额 : </span>{{item.money}}元</div>
+                    <div><span>提现备注 : </span>{{item.memo}}</div>
+                </div>
+                <div style="width:100%;height:20px"></div>
+            </div>
+        </el-dialog>
+    </div>
+    <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+    <script src="libs/fastclick.js"></script>
+    <script>
+        $(function () {
+            FastClick.attach(document.body);
+        });
+    </script>
+    <script src="libs/jquery-weui.min.js"></script>
+    <script src="libs/request.js"></script>
+    <script src="libs/vue.min.js"></script>
+    <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+    <script>
+        $(function () {
+            new Vue({
+                el: "#app",
+                data() {
+                    return {
+                        /**
+                         * @param {number} site_id 场所id , value选择场所;
+                         * @param {object} list 提现信息列表,siteList 可用场所id;
+                         * @param {string} type 当前用户身份type;
+                         */
+                        site_id: 0,
+                        value: 0,
+                        loading: true,
+                        list: [],
+                        siteList: [],
+                        type: '',
+                        page: 1,
+                        centerDialogVisible: false,
+                        detail: {}
+                    }
+                },
+                created() {
+                    let that = this;
+                    that.action_site_list();
+                    that.type = JSON.parse(sessionStorage.getItem('status')).type;
+                },
+                // 监听下拉刷新;
+                mounted() {
+                    window.addEventListener('scroll', this.scrollToTop)
+                },
+                methods: {
+                    operation(data) {
+                        if (data.status == 3) {
+                            this.detail = data;
+                            this.centerDialogVisible = true;
+                        }
+                    },
+                    /**
+                     * @method changeValue()选择场所;
+                     * @param {*}  site_id = this.siteList[e.target.value].id;场所id;
+                     * @method mlists() 场所提现信息;
+                     */
+                    changeValue(e) {
+                        this.site_id = this.siteList[e.target.value].id;
+                        this.mlists(this.siteList[e.target.value].id);
+                    },
+                    /**
+                     * @method action_site_list() 获取可用场所信息;
+                     * @param {string}  url 请求url;
+                     * @param {object} data  请求参数 {type:当前身份type};
+                     * @callback then()=>@param {object} res => that.siteList , @method mlists() 获取提现信息;catch=>err 错误处理;
+                     */
+                    action_site_list() {
+                        let that = this,
+                            url = '/api.php?s=/site/action_site_list',
+                            data = {
+                                type: JSON.parse(sessionStorage.getItem('status')).type
+                            };
+                        requestGet(url, data).then((res) => {
+                            let that = this;
+                            that.siteList = res.data;
+                            that.site_id = res.data[0].id;
+                            that.mlists(res.data[0].id);
+                            that.loading = false;
+                        }).catch((err) => {
+                            console.log(err)
+                        })
+                    },
+                    /**
+                     * @method mlists() 提现记录;
+                     * @param {string} 请求接口;
+                     * @param {object} data 请求参数 {site_id:场所id,type:用户身份type};
+                     * @method if (type == admin || type == spread) {不需要穿site_id参数,默认查询全部} else  其他的都要
+                     * @callback then()=> @param {object} res =>  that.list; catch=>err 错误处理;
+                     */
+                    mlists(site_id) {
+                        let that = this,
+                            url = '/api.php?s=/Withdraw/lists',
+                            data = {
+                                page: 1,
+                                type: JSON.parse(sessionStorage.getItem('status')).type
+                            }
+                        // data = JSON.parse(sessionStorage.getItem('status')).type == 'admin' || JSON
+                        // .parse(sessionStorage.getItem('status')).type == 'spread' ? {
+                        //     page: 1,
+                        //     type: JSON.parse(sessionStorage.getItem('status')).type
+                        // } : {
+                        //     page: 1,
+                        //     site_id,
+                        //     type: JSON.parse(sessionStorage.getItem('status')).type
+                        // };
+                        requestGet(url, data).then((res) => {
+                            that.loading = false;
+                            that.list = res.data.data;
+                        }).catch((err) => {
+                            that.$message({
+                                message: err.msg,
+                                type: 'warning'
+                            });
+                        })
+                    },
+                    scrollToTop() {
+                        var that = this,
+                            scrollTop = document.documentElement.scrollTop || document.body.scrollTop,
+                            windowHeight = document.documentElement.clientHeight || document.body
+                            .clientHeight,
+                            scrollHeight = document.documentElement.scrollHeight || document.body
+                            .scrollHeight;
+                        if (scrollTop + windowHeight == scrollHeight) {
+                            let that = this,
+                                p = that.page < 2 ? 2 : that.page,
+                                url = '/api.php?s=/UserMoneyLog/lists',
+                                data = JSON.parse(sessionStorage.getItem('status')).type == 'admin' ||
+                                JSON.parse(sessionStorage.getItem('status')).type == 'spread' ? {
+                                    page: p,
+                                    type: JSON.parse(sessionStorage.getItem('status')).type
+                                } : {
+                                    page: p,
+                                    site_id,
+                                    type: JSON.parse(sessionStorage.getItem('status')).type
+                                };
+                            requestGet(url, data).then((res) => {
+                                if (res.data.data.length) {
+                                    that.list = that.list.concat(res.data.data);
+                                    p++;
+                                    that.page = p;
+                                }
+                            }).catch((err) => {
+                                console.log(err)
+                            })
+                        } else {
+                            // that.loading = true;
+                        }
+                    },
+                }
+            })
+        })
+    </script>
+</body>
+
+</html>

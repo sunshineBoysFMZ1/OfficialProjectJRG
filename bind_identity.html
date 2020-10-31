@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>场所绑定</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="libs/weui.min.css">
+    <link rel="stylesheet" href="libs/jquery-weui.min.css">
+    <link rel="stylesheet" href="libs/index.css">
+    <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+    <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+    <style>
+        .el-message-box {
+            width: 340px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" v-loading="loading" style="width: 100%" element-loading-text="场所身份绑定..." v-cloak>
+        <div class="topimg radius"><img src="images/tu.jpg"></div>
+    </div>
+    <!--    
+        login.js 分装 判断登录 
+        jq.js 
+        vue.js
+     -->
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+    <script src='libs/request.js'></script>
+    <script src="libs/vue.min.js"></script>
+    <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+    <script>
+        $(function () {
+            new Vue({
+                el: "#app",
+                data() {
+                    return {
+                        loading: true
+                    }
+                },
+                created() {
+                    let that = this;
+                    /**
+                     * @method WechatLogin();登录授权;
+                     * @param {*} window 页面信息;
+                     * @callback then()=> @param {*} res (code) => @method register()注册, catch=> err 错误处理;
+                    */
+                    if (sessionStorage.getItem('tokens')) {
+                        that.userInfo();
+                        that.loading = false;
+                    } else {
+                        WechatLogin(window).then((res) => {
+                            that.register(res);
+                        }).catch((err) => {
+                            console.log(err)
+                        });
+                    }
+                },
+                methods: {
+                    // 解析url 参数 
+                    pathUrl(name) {
+                        let data = window.location.search.substring(1);
+                        for (let item of data.split('&')) {
+                            if (name == item.split('=')[0]) {
+                                return item.split('=')[1]
+                            }
+                        };
+                    },
+                    /**
+                     * @method set_bind_qrcode() 绑定;
+                     * @param {string} url 请求接口;
+                     * @param {object} data {id:@method pathUrl(id)场所id};
+                     * @callback then()=> 跳转,catch=>err 错误 跳转;
+                    */
+                    set_bind_qrcode() {
+                        let that = this,
+                            data = {
+                                id: that.pathUrl('id')
+                            },
+                            url = '/api.php?s=/site/set_bind_qrcode';
+                        requestGet(url, data).then((res) => {
+                            that.$message({
+                                message: res.msg,
+                                type: 'success'
+                            });
+                            that.loading = true;
+                            setTimeout(() => {
+                                window.location.href = 'my.html';
+                            }, 1000)
+                        }).catch((err) => {
+                            that.$message({
+                                message: err.msg,
+                                type: 'warning'
+                            });
+                            that.takeUp();
+                        })
+                    },
+                    // 绑定弹出
+                    takeUp(nickname) {
+                        let that = this;
+                        that.$confirm('场所邀请绑定身份', '场所绑定', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            center: true,
+                            type: 'info'
+                        }).then(() => {
+                            that.set_bind_qrcode();
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                message: '取消绑定'
+                            });
+                            window.location.href = 'my.html'
+                        });
+                    },
+                    // 注册 
+                    /**
+                     * @method register() 注册;
+                     * @param {*} code 注册必传;
+                     * @callback then() => @param {object} res 缓存 tokens => @method userInfo() 获取用户信息; catch=err 错误处理;
+                    */
+                    register(code) {
+                        let that = this,
+                            url = '/api.php?s=/user/login',
+                            data = {
+                                code
+                            };
+                        requestPost(url, data).then((res) => {
+                            sessionStorage.setItem('tokens', res.data.tokens);
+                            that.userInfo();
+                        }).catch((err) => {
+                            that.userInfo();
+                        })
+                    },
+                    /**
+                     * @method userInfo() 获取用户信息;
+                     * @param {string} url 请求接口;
+                     * @param {object} data  按需传参 没有参数{};
+                     * @callback then()=> @param {object}  res => @method takeUp() 授权弹框; catch=>err 错误处理;
+                    */
+                    userInfo() {
+                        let that = this,
+                            url = '/api.php?s=/user/info',
+                            data = {};
+                        requestGet(url, data).then((res) => {
+                            that.loading = false;
+                            that.takeUp();
+                        }).catch((err) => {
+                            that.loading = true;
+                            that.text = err.msg;
+                            that.$message({
+                                message: err.msg,
+                                type: 'warning'
+                            });
+                        })
+                    },
+                },
+            })
+        })
+    </script>
+</body>
+
+</html>

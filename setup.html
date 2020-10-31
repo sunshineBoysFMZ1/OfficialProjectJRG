@@ -1,0 +1,310 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>BonBon寄存柜</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <link rel="stylesheet" href="libs/weui.min.css">
+  <link rel="stylesheet" href="libs/jquery-weui.min.css">
+  <link rel="stylesheet" href="libs/index.css">
+  <link rel="stylesheet" href="http://cunbaocdn.1565.com.cn/element/index.css">
+  <script src="http://cunbaocdn.1565.com.cn/jquery-2.1.4.js"></script>
+  <style>
+    label {
+      width: calc(4em + 5px);
+      display: block;
+    }
+
+    .el-message-box {
+      width: 340px;
+    }
+  </style>
+</head>
+
+<body class="bg-gray">
+  <div id="app" v-loading="loading" style="width: 100%" element-loading-text="读取用户信息..." v-cloak>
+    <div class="weui-cell topbar bg-white" v-if='cabinetList.device_info'>
+      <div class="weui-cell__bd oneline">{{cabinetList.device_info.site_name}}-{{cabinetList.device_info.device_name}}
+      </div>
+      <div class="weui-cell__ft text-xs">营业时间：{{cabinetList.device_info.device_operating_date}}</div>
+    </div>
+    <div class="topimg radius" v-if='htmlcode==false'><img src="images/tu.jpg"></div>
+    <div v-if='htmlcode'>
+      <div class="weui-cells__title">请为当前存包设置手机号码和密码：</div>
+      <div class="margin bg-white radius shadow">
+        <div class="weui-cell ">
+          <div class="weui-cell__hd input-icon"><img src="images/phone.png" /></div>
+          <div class="weui-cell__hd"><label>手机号：</label></div>
+          <div class="weui-cell__bd">
+            <input class="weui-input tel" type="tel" placeholder="请输入手机号" maxlength="11">
+          </div>
+        </div>
+        <div class="weui-cell weui-cell_vcode">
+          <div class="weui-cell__hd input-icon"><img src="images/messgae.png" /></div>
+          <div class="weui-cell__hd"><label>验证码：</label></div>
+          <div class="weui-cell__bd">
+            <input class="weui-input code" type="tel" placeholder="请输入验证码">
+          </div>
+          <div class="weui-cell__ft" @click='send()'>
+            <button class="weui-vcode-btn" v-if='show'>获取验证码</button>
+            <button class="weui-vcode-btn" v-else>{{s}}s后重新发送</button>
+          </div>
+        </div>
+        <div class="weui-cell">
+          <div class="weui-cell__hd input-icon"><img src="images/password.png" /></div>
+          <div class="weui-cell__hd"><label>取物码：</label></div>
+          <div class="weui-cell__bd">
+            <input class="weui-input pass" type="tel" placeholder="请设置6位取物密码" maxlength="6">
+          </div>
+        </div>
+      </div>
+      <span class="content-padded" @click='verify();'><button class="weui-btn">下一步</button></span>
+    </div>
+    <!-- 关注公众号 -->
+    <div class="demo-image__placeholder erwem" v-if='showing'>
+      <div class="block">
+        <span class="demonstration">
+          长按二维码!关注公众号~ <br />
+          关注公众号!享受跟多服务!<br />
+        </span>
+        <el-image :src="src">
+          <div slot="placeholder" class="image-slot">
+            加载中<span class="dot">...</span>
+          </div>
+        </el-image>
+      </div>
+    </div>
+  </div>
+  <script src="libs/fastclick.js"></script>
+  <script src="libs/request.js"></script>
+  <script src="libs/vue.min.js"></script>
+  <script src="http://cunbaocdn.1565.com.cn/element/index.js"></script>
+  <script src="libs/jquery-weui.min.js"></script>
+  <script>
+    $(function () {
+      let isPageHide = false;
+      window.addEventListener('pageshow', function () {
+        if (isPageHide) {
+          window.location.reload();
+        }
+      });
+      window.addEventListener('pagehide', function () {
+        isPageHide = true;
+      });
+    })
+  </script>
+  <script>
+    $(function () {
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            loading: true,
+            s: 60,
+            show: true,
+            showing: false,
+            device_id: 0,
+            cabinetList: {},
+            src: "",
+            htmlcode: false
+          }
+        },
+        created() {
+          let that = this;
+          that.device_id = this.pathUrl('device_id');
+          if (sessionStorage.getItem('tokens')) {
+            that.listsData();
+          } else {
+            WechatLogin(window).then((res) => {
+              that.register(res);
+            }).catch((err) => {
+              that.listsData();
+            });
+          }
+        },
+        methods: {
+          // 柜子列表数据
+          listsData() {
+            let url = '/api.php?s=/DeviceSub/lists',
+              data = {
+                device_id: this.pathUrl('device_id')
+              },
+              that = this,
+              cabinet = that.cabinet;
+            requestGet(url, data).then((resp) => {
+              // 处理数据
+              that.cabinetList = resp.data;
+              if (resp.code == 101) {
+                return window.location.href = 'taking.html';
+              } else if (resp.code == 102) {
+                that.$confirm(resp.msg, '提示信息', {
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消',
+                  type: 'warning',
+                  center: true,
+                  callback: (res) => {
+                    if (res == 'confirm') {
+                      window.location.href = 'list.html'
+                    } else {
+                      window.location.href = 'index.html'
+                    }
+                  }
+                })
+              } else {
+                that.userInfo();
+              }
+            }).catch((err) => {
+              that.loading = false;
+              that.$confirm(err.msg, '提示信息', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning',
+                center: true,
+                callback: (res) => {
+                  window.location.href = 'index.html'
+                }
+              })
+            })
+          },
+          // 注册
+          register(code) {
+            let that = this,
+              url = '/api.php?s=/user/login',
+              data = {
+                code
+              };
+            requestPost(url, data).then((res) => {
+              let data = res.data;
+              sessionStorage.setItem('tokens', res.data.tokens);
+              that.listsData();
+            }).catch((err) => {
+              that.listsData();
+            })
+          },
+          // 判断用户是否绑定
+          userInfo() {
+            let that = this,
+              url = '/api.php?s=/user/info',
+              data = {};
+            requestGet(url, data).then((res) => {
+              let data = res.data;
+              that.userData = res.data;
+              // 绑定手机号
+              if (data.mobile && data.subscribe) {
+                that.loading = true;
+                that.addhref();
+              } else if (data.subscribe == 0) { //没有绑定公众号
+                that.htmlcode = true; //关闭加载显示图片...
+                that.showing = true; //显示信息
+                that.loading = false; //关闭加载
+                that.src = data.public_qrcode;
+              } else if (data.mobile == '') { //没有绑定手机号
+                that.loading = false;
+                that.htmlcode = true;
+              };
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          // 验证成功跳转
+          addhref() {
+            let that = this;
+            window.location.href = 'storage.html?device_id=' + that.device_id;
+          },
+          // 验证码
+          send() {
+            let that = this,
+              url = '/api.php?s=/sendSms/send',
+              data = {
+                mobile: $('.tel').val()
+              };
+            if (that.s == 60) {
+              requestPost(url, data).then((res) => {
+                that.$message({
+                  message: res.msg,
+                  type: 'success'
+                });
+                that.show = false;
+                that.timer = setInterval(that.countDown, 1000);
+              }).catch((err) => {
+                that.$message({
+                  message: err.msg,
+                  type: 'warning'
+                });
+              })
+            } else {
+              that.$message({
+                message: '验证码已发送,请勿频繁操作',
+                type: 'warning'
+              });
+            }
+          },
+          // 60s倒计时
+          countDown() {
+            let that = this;
+            that.show = false;
+            that.s--;
+            if (that.s <= 0) {
+              that.countend();
+            }
+          },
+          // 结束倒计时
+          countend() {
+            let that = this;
+            clearInterval((that.timer));
+            that.s = 60;
+            that.show = true;
+          },
+          // 验证
+          verify() {
+            if ($('.tel').val() == '' || $('.code').val() == '' || $('.pass').val() == '') {
+              return this.$message({
+                message: '请输入完整信息',
+                type: 'warning'
+              });
+            }
+            let that = this,
+              url = '/api.php?s=/sendSms/verify',
+              data = {
+                mobile: $('.tel').val(),
+                code: $('.code').val(),
+                password: $('.pass').val()
+              };
+            requestPost(url, data).then((res) => {
+              that.addhref();
+            }).catch((err) => {
+              that.$message({
+                message: err.msg,
+                type: 'warning'
+              });
+            })
+          },
+          // 解析url 参数
+          pathUrl(name) {
+            let data = window.location.search.substring(1);
+            for (let item of data.split('&')) {
+              if (name == item.split('=')[0]) {
+                return item.split('=')[1]
+              }
+            };
+          },
+        },
+        beforeDestroy() {
+          let that = this;
+          clearInterval((that.timer));
+          that.s = 60;
+          that.show = true;
+        }
+      })
+    })
+  </script>
+</body>
+
+</html>
